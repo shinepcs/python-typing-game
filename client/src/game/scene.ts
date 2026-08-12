@@ -6,7 +6,7 @@ import { Scene } from "@babylonjs/core/scene";
 import * as GUI from "@babylonjs/gui";
 import { ProgressStore } from "./progress";
 import { SoundEngine } from "./SoundEngine";
-import { MISSIONS, type Mission } from "./snippets";
+import { MISSIONS, pickWords, pickFunction, pickProgram, type Mission } from "./snippets";
 import { TypingArena } from "./TypingArena";
 
 const ASSETS = {
@@ -616,7 +616,21 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
     selectedMissionIndex = index;
     practiceSetIndex = 0;
     const mission = MISSIONS[index];
-    arena.setMission({ ...mission, code: mission.setItems?.[0] ?? mission.code });
+    // 단어 연습: 매 선택마다 랜덤 20개 셔플
+    if (mission.kind === "word") {
+      const randomWords = pickWords(20);
+      arena.setMission({ ...mission, setItems: randomWords, code: randomWords[0] });
+    } else if (mission.kind === "function") {
+      // 함수 코드: 레벨에 따라 랜덤 선택
+      const randomCode = pickFunction(progressStore.level);
+      arena.setMission({ ...mission, code: randomCode, setItems: undefined });
+    } else if (mission.kind === "program") {
+      // 프로그램 코드: 레벨에 따라 랜덤 선택
+      const randomCode = pickProgram(progressStore.level);
+      arena.setMission({ ...mission, code: randomCode, setItems: undefined });
+    } else {
+      arena.setMission({ ...mission, code: mission.setItems?.[0] ?? mission.code });
+    }
     sessionRecorded = false;
     missionButtons.forEach((missionButton, itemIndex) => {
       const selected = visibleMissionIndexes[itemIndex] === index;
@@ -867,7 +881,18 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
     if (arena.status === "complete") {
       const mission = MISSIONS[selectedMissionIndex];
       practiceSetIndex = 0;
-      arena.setMission({ ...mission, code: mission.setItems?.[0] ?? mission.code });
+      if (mission.kind === "word") {
+        const randomWords = pickWords(20);
+        arena.setMission({ ...mission, setItems: randomWords, code: randomWords[0] });
+      } else if (mission.kind === "function") {
+        const randomCode = pickFunction(progressStore.level);
+        arena.setMission({ ...mission, code: randomCode, setItems: undefined });
+      } else if (mission.kind === "program") {
+        const randomCode = pickProgram(progressStore.level);
+        arena.setMission({ ...mission, code: randomCode, setItems: undefined });
+      } else {
+        arena.setMission({ ...mission, code: mission.setItems?.[0] ?? mission.code });
+      }
       sessionRecorded = false;
     }
     startRound();
