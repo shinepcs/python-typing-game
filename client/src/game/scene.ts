@@ -188,11 +188,11 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   missionStack.spacing = 10;
   const missionKicker = text("mission-kicker", "MISSION QUEUE", 10, COLORS.cyan);
   missionKicker.height = "24px";
-  const missionTitle = text("mission-title", "오늘의 리듬", 20, COLORS.ink);
+  const missionTitle = text("mission-title", "연속 코드 연습", 20, COLORS.ink);
   missionTitle.fontFamily = "Space Grotesk, Noto Sans KR, sans-serif";
   missionTitle.fontWeight = "700";
   missionTitle.height = "34px";
-  const missionBody = text("mission-body", "짧은 구문을 정확하게\n입력하며 문법의 감각을 만드세요.", 12, COLORS.muted);
+  const missionBody = text("mission-body", "5·20자 워밍업 뒤\n실행 가능한 코드로 이어갑니다.", 12, COLORS.muted);
   missionBody.height = "50px";
   missionStack.addControl(missionKicker);
   missionStack.addControl(missionTitle);
@@ -243,7 +243,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   terminalHeader.height = "30px";
   terminalHeader.addColumnDefinition(1, false);
   terminalHeader.addColumnDefinition(130, true);
-  const prompt = text("terminal-prompt", "> TYPE THE SEQUENCE", 11, COLORS.lime);
+  const prompt = text("terminal-prompt", "> KEEP THE FLOW", 11, COLORS.lime);
   const language = text("language", "PYTHON 3.13", 10, COLORS.muted);
   language.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
   terminalHeader.addControl(prompt, 0, 0);
@@ -259,7 +259,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   conceptText.height = "28px";
   terminalStack.addControl(conceptText);
   const codeContainer = new GUI.StackPanel("code-container");
-  codeContainer.height = "206px";
+  codeContainer.height = "328px";
   codeContainer.paddingTop = "14px";
   terminalStack.addControl(codeContainer);
   const statusStrip = new GUI.Grid("status-strip");
@@ -289,7 +289,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   controls.isVertical = false;
   controls.height = "56px";
   controls.spacing = 8;
-  const restart = button("restart", "▶  스프린트 시작", true);
+  const restart = button("restart", "▶  연습 시작", true);
   restart.width = "132px";
   const pause = button("pause", "Ⅱ  일시정지", false);
   pause.width = "132px";
@@ -473,14 +473,14 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
     });
     overlay.isVisible = false;
     inputHint.text = `${MISSIONS[index].concept} 미션을 장전했습니다. 스프린트를 시작하세요.`;
-    restart.textBlock!.text = "▶  스프린트 시작";
+    restart.textBlock!.text = "▶  연습 시작";
     announce(`${MISSIONS[index].title} 미션을 선택했습니다. ${MISSIONS[index].concept} 연습을 시작할 수 있습니다.`);
   };
 
   const startRound = () => {
     arena.start();
     overlay.isVisible = false;
-    restart.textBlock!.text = "↻  다시 도전";
+    restart.textBlock!.text = "↻  처음부터 다시";
     nextMissionAction.isVisible = false;
     announce(`${arena.activeMission.title} 미션을 시작했습니다.`);
   };
@@ -499,6 +499,15 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
       sessionRecorded = true;
     }
     const weakCharacters = progressStore.weakCharacters();
+    if (arena.activeMission.continuous) {
+      const completedTitle = arena.activeMission.title;
+      arena.reset();
+      sessionRecorded = false;
+      startRound();
+      inputHint.text = `${completedTitle} 완료 · 같은 리듬을 바로 이어갑니다.`;
+      announce(`${completedTitle}을 완료했습니다. 다음 반복을 바로 시작합니다.`);
+      return;
+    }
     const recommendedIndex = MISSIONS.findIndex((mission) => !progressStore.snapshot.completedMissionIds.includes(mission.id) && mission.id !== arena.activeMission.id);
     const safeRecommendedIndex = recommendedIndex >= 0 ? recommendedIndex : (selectedMissionIndex + 1) % MISSIONS.length;
     const recommendedMission = MISSIONS[safeRecommendedIndex];
@@ -509,7 +518,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
     primaryAction.textBlock!.text = "↻  같은 미션 다시 도전";
     nextMissionAction.textBlock!.text = `→  추천: ${recommendedMission.title}`;
     nextMissionAction.metadata = safeRecommendedIndex;
-    nextMissionAction.isVisible = true;
+    nextMissionAction.isVisible = false;
     announce(`결과: WPM ${arena.wpm}, 정확도 ${arena.accuracy}퍼센트, ${latestEarnedXp} XP를 획득했습니다.`);
   };
 
@@ -519,17 +528,38 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
     const lines = target.split("\n");
     const compactCode = engine.getRenderWidth() < 800;
     const codeSize = compactCode ? 14 : 20;
-    let lineStart = 0;
-    lines.forEach((line, lineIndex) => {
-      const row = new GUI.StackPanel(`code-row-${lineIndex}`);
-      row.isVertical = false;
+    const lineOffsets: number[] = [];
+    let cursor = 0;
+    lines.forEach((line) => {
+      lineOffsets.push(cursor);
+      cursor += line.length + 1;
+    });
+    const activeLine = Math.max(0, lines.findIndex((line, index) => arena.index <= lineOffsets[index] + line.length));
+    const visibleLineCount = compactCode ? 7 : 8;
+    const firstVisibleLine = Math.max(0, Math.min(activeLine - 2, lines.length - visibleLineCount));
+    const lastVisibleLine = Math.min(lines.length, firstVisibleLine + visibleLineCount);
+
+    for (let lineIndex = firstVisibleLine; lineIndex < lastVisibleLine; lineIndex += 1) {
+      const line = lines[lineIndex];
+      const lineStart = lineOffsets[lineIndex];
+      const row = new GUI.Rectangle(`code-row-${lineIndex}`);
       row.height = "42px";
       row.width = "100%";
+      row.thickness = 0;
+      row.background = "#00000000";
+      const codeFlow = new GUI.StackPanel(`code-flow-${lineIndex}`);
+      codeFlow.isVertical = false;
+      codeFlow.height = "38px";
+      codeFlow.width = "100%";
+      codeFlow.spacing = 0;
+      codeFlow.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+      codeFlow.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
+      row.addControl(codeFlow);
       const number = text(`line-${lineIndex + 1}`, String(lineIndex + 1).padStart(2, "0"), 13, "#587078");
       number.width = compactCode ? "26px" : "38px";
       number.height = "38px";
       number.resizeToFit = false;
-      row.addControl(number);
+      codeFlow.addControl(number);
       const typedLength = Math.max(0, Math.min(line.length, arena.index - lineStart));
       const activeInLine = arena.index >= lineStart && arena.index < lineStart + line.length;
       const doneText = line.slice(0, typedLength);
@@ -544,24 +574,35 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
         indentSegment.height = "38px";
         indentSegment.thickness = 0;
         indentSegment.background = "#00000000";
-        row.addControl(indentSegment);
+        codeFlow.addControl(indentSegment);
       }
 
       if (completedCode) {
         const typedSegment = text(`typed-${lineIndex}`, completedCode, codeSize, COLORS.lime);
         typedSegment.height = "38px";
-        row.addControl(typedSegment);
+        codeFlow.addControl(typedSegment);
       }
 
-      const activeSegment = text(`active-${lineIndex}`, activeInLine ? "▍" : arena.index === lineStart + line.length ? "▍" : "", codeSize, arena.errorActive ? COLORS.coral : COLORS.lime);
-      activeSegment.height = "38px";
       const restSegment = text(`rest-${lineIndex}`, `${activeChar}${restText}`, codeSize, "#6E8487");
       restSegment.height = "38px";
-      row.addControl(activeSegment);
-      row.addControl(restSegment);
+      codeFlow.addControl(restSegment);
+
+      const markerIndex = activeInLine ? typedLength : arena.index === lineStart + line.length ? line.length : -1;
+      if (markerIndex >= 0) {
+        const characterWidth = codeSize * 0.6;
+        const marker = new GUI.Rectangle(`caret-marker-${lineIndex}`);
+        marker.width = `${Math.max(6, characterWidth * 0.72)}px`;
+        marker.height = "3px";
+        marker.thickness = 0;
+        marker.background = arena.errorActive ? COLORS.coral : COLORS.lime;
+        marker.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        marker.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        marker.left = `${(compactCode ? 26 : 38) + markerIndex * characterWidth}px`;
+        marker.top = "-1px";
+        row.addControl(marker);
+      }
       codeContainer.addControl(row);
-      lineStart += line.length + 1;
-    });
+    }
   };
 
   const updateHud = () => {
@@ -574,7 +615,8 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
     accuracyDial.color = arena.accuracy < 90 ? COLORS.coral : COLORS.lime;
     wpmNumber.text = String(arena.wpm);
     comboNumber.text = String(arena.combo);
-    timerValue.text = `00:${String(Math.ceil(arena.timeRemaining)).padStart(2, "0")}`;
+    const remainingSeconds = Math.ceil(arena.timeRemaining);
+    timerValue.text = `${String(Math.floor(remainingSeconds / 60)).padStart(2, "0")}:${String(remainingSeconds % 60).padStart(2, "0")}`;
     xpLabel.text = `LV. ${String(progressStore.level).padStart(2, "0")}  /  ${progressStore.levelProgress} XP`;
     xpFill.width = `${Math.max(4, (progressStore.levelProgress / 500) * 100)}%`;
     streakCaption.text = progressStore.snapshot.dailyStreak > 0 ? `${progressStore.snapshot.dailyStreak}일 연속 학습 중` : "첫 리듬을 시작하세요.";
@@ -687,7 +729,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
       xpStack.width = compact ? "172px" : "230px";
       terminal.paddingLeft = condensed ? "12px" : "22px";
       terminal.paddingRight = condensed ? "12px" : "22px";
-      codeContainer.height = compact ? "220px" : "206px";
+      codeContainer.height = compact ? "280px" : "328px";
       lastIndex = -1;
     }
   });
