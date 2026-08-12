@@ -538,11 +538,14 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   let practiceSetIndex = 0;
   let focusMode = false;
   let lastFeedbackKey = "";
+  // ── 오타 토스트 상태 ──────────────────────────────────────────────
+  let toastTimer = 0;
+  let toastMessage = "";
+  let lastErrorActive = false;
   overlay.isVisible = false;
 
   const nearbyFeedback = () => {
     const setItems = arena.activeMission.setItems;
-    if (arena.errorActive) return { text: "오타 · 현재 문자를 다시 입력", color: COLORS.coral, background: "#3A141B" };
     if (arena.autoIndentActive) return { text: `자동 들여쓰기 · ${arena.autoIndentLevels}단계 적용`, color: COLORS.cyan, background: "#0B2630" };
     if (arena.status === "paused") return { text: "일시정지 · ESC로 계속", color: COLORS.cyan, background: "#0B2630" };
     if (setItems) return { text: `연속 세트 · ${practiceSetIndex + 1}/${setItems.length} 항목`, color: COLORS.lime, background: "#182A1A" };
@@ -696,6 +699,8 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
       const line = lines[lineIndex] ?? "";
       const lineStart = lineOffsets[lineIndex] ?? target.length;
       const isPlaceholder = lineIndex >= lines.length;
+      const isActiveLine = lineIndex === activeLine;
+      const isPrevLine = lineIndex === activeLine - 1;
       const row = new GUI.Rectangle(`code-row-${lineIndex}`);
       row.height = "52px";
       row.width = "100%";
@@ -740,26 +745,80 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
         marker.top = "-1px";
         row.addControl(marker);
       }
-      if (lineIndex === activeLine) {
+      // ── 왼쪽 상태 버블 (현재 줄, 오타 제외) ──────────────────────
+      if (isActiveLine && !compactCode) {
         const feedback = nearbyFeedback();
         const feedbackBubble = new GUI.Rectangle(`feedback-bubble-${lineIndex}`);
-        feedbackBubble.width = compactCode ? "172px" : "184px";
+        feedbackBubble.width = "188px";
         feedbackBubble.height = "34px";
         feedbackBubble.cornerRadius = 5;
         feedbackBubble.thickness = 1;
         feedbackBubble.color = feedback.color;
         feedbackBubble.background = feedback.background;
-        feedbackBubble.horizontalAlignment = compactCode ? GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT : GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        feedbackBubble.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
         feedbackBubble.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
         feedbackBubble.top = "6px";
-        feedbackBubble.left = compactCode ? "0px" : "0px";
+        feedbackBubble.left = "4px";
         feedbackBubble.zIndex = 5;
-        const feedbackText = text(`feedback-text-${lineIndex}`, feedback.text, compactCode ? 13 : 14, feedback.color);
+        const feedbackText = text(`feedback-text-${lineIndex}`, feedback.text, 14, feedback.color);
+        feedbackText.resizeToFit = false;
+        feedbackText.width = "180px";
         feedbackText.height = "34px";
         feedbackText.paddingLeft = "12px";
         feedbackText.paddingRight = "12px";
+        feedbackText.textWrapping = GUI.TextWrapping.Clip;
         feedbackBubble.addControl(feedbackText);
         row.addControl(feedbackBubble);
+      }
+      // ── 오타 토스트 버블 (현재 줄 1줄 위에 표시) ─────────────────
+      if (isPrevLine && toastTimer > 0 && !compactCode) {
+        const toastBubble = new GUI.Rectangle(`toast-bubble-${lineIndex}`);
+        toastBubble.width = "240px";
+        toastBubble.height = "32px";
+        toastBubble.cornerRadius = 5;
+        toastBubble.thickness = 1;
+        toastBubble.color = COLORS.coral;
+        toastBubble.background = "#3A141B";
+        toastBubble.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        toastBubble.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        toastBubble.top = "-2px";
+        toastBubble.left = `${numberWidth}px`;
+        toastBubble.zIndex = 10;
+        toastBubble.alpha = Math.min(1, toastTimer / 400);
+        const toastText = text(`toast-text-${lineIndex}`, toastMessage, 13, COLORS.coral);
+        toastText.resizeToFit = false;
+        toastText.width = "232px";
+        toastText.height = "32px";
+        toastText.paddingLeft = "10px";
+        toastText.paddingRight = "10px";
+        toastText.textWrapping = GUI.TextWrapping.Clip;
+        toastBubble.addControl(toastText);
+        row.addControl(toastBubble);
+      }
+      // ── 오타 토스트 버블 (첫 줄 오타 시 현재 줄 아래) ────────────
+      if (isActiveLine && activeLine === 0 && toastTimer > 0 && !compactCode) {
+        const toastBubble2 = new GUI.Rectangle(`toast-bubble-active-${lineIndex}`);
+        toastBubble2.width = "240px";
+        toastBubble2.height = "32px";
+        toastBubble2.cornerRadius = 5;
+        toastBubble2.thickness = 1;
+        toastBubble2.color = COLORS.coral;
+        toastBubble2.background = "#3A141B";
+        toastBubble2.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        toastBubble2.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        toastBubble2.top = "2px";
+        toastBubble2.left = `${numberWidth}px`;
+        toastBubble2.zIndex = 10;
+        toastBubble2.alpha = Math.min(1, toastTimer / 400);
+        const toastText2 = text(`toast-text-active-${lineIndex}`, toastMessage, 13, COLORS.coral);
+        toastText2.resizeToFit = false;
+        toastText2.width = "232px";
+        toastText2.height = "32px";
+        toastText2.paddingLeft = "10px";
+        toastText2.paddingRight = "10px";
+        toastText2.textWrapping = GUI.TextWrapping.Clip;
+        toastBubble2.addControl(toastText2);
+        row.addControl(toastBubble2);
       }
       codeContainer.addControl(row);
     }
@@ -784,7 +843,16 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
     const compactView = engine.getRenderWidth() < 800;
     inputHint.text = arena.status === "paused" ? (compactView ? "일시정지 · ESC로 계속" : "일시정지됨 · ESC로 계속하기") : arena.errorActive ? (compactView ? "오타 · 현재 문자를 다시 입력" : "오타입니다. 현재 문자를 다시 입력하세요.") : arena.status === "playing" ? (compactView ? "입력 흐름 유지 중" : "지금 흐름이 좋습니다. 정확도를 지키세요.") : (compactView ? "아무 키를 누르면 시작" : "키보드를 누르면 즉시 시작됩니다.");
     inputHint.color = arena.errorActive ? COLORS.coral : COLORS.muted;
-    const feedbackKey = `${arena.status}-${arena.errorActive}-${arena.autoIndentActive}-${practiceSetIndex}-${arena.accuracy}-${arena.cpm}`;
+    const feedbackKey = `${arena.status}-${arena.errorActive}-${arena.autoIndentActive}-${practiceSetIndex}-${arena.accuracy}-${arena.cpm}-${Math.floor(toastTimer / 100)}`;
+    // ── 오타 토스트 타이머 갱신 ──────────────────────────────────────
+    const dt = engine.getDeltaTime();
+    if (arena.errorActive && !lastErrorActive) {
+      toastMessage = "⚠ 오타 · 현재 문자를 다시 입력하세요";
+      toastTimer = 1500;
+    } else if (toastTimer > 0) {
+      toastTimer = Math.max(0, toastTimer - dt);
+    }
+    lastErrorActive = arena.errorActive;
     if (arena.index !== lastIndex || mission.id !== lastMissionId || feedbackKey !== lastFeedbackKey) {
       renderCode();
       lastIndex = arena.index;
