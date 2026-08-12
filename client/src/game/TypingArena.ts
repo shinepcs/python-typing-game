@@ -72,6 +72,20 @@ export class TypingArena {
       return "rewind";
     }
 
+    if (key === "Tab") {
+      const isLineStart = this.typedIndex === 0 || this.mission.code[this.typedIndex - 1] === "\n";
+      const indentation = this.mission.code.slice(this.typedIndex).match(/^ +/)?.[0] ?? "";
+      if (!isLineStart || indentation.length === 0) return "ignored";
+
+      this.typedIndex += indentation.length;
+      this.correctKeys += indentation.length;
+      if (this.typedIndex >= this.mission.code.length) {
+        this.mode = "complete";
+        return "complete";
+      }
+      return "correct";
+    }
+
     const normalizedKey = key === "Enter" ? "\n" : key;
     if (normalizedKey.length !== 1) return "ignored";
 

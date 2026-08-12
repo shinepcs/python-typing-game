@@ -535,13 +535,28 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
       const doneText = line.slice(0, typedLength);
       const activeChar = activeInLine ? line[typedLength] : "";
       const restText = line.slice(typedLength + (activeInLine ? 1 : 0));
-      const typedSegment = text(`typed-${lineIndex}`, doneText, codeSize, COLORS.lime);
-      typedSegment.height = "38px";
-      const activeSegment = text(`active-${lineIndex}`, activeChar ? `▍${activeChar}` : arena.index === lineStart + line.length ? "▍" : "", codeSize, arena.errorActive ? COLORS.coral : COLORS.lime);
+      const leadingIndent = doneText.match(/^ +/)?.[0] ?? "";
+      const completedCode = doneText.slice(leadingIndent.length);
+
+      if (leadingIndent.length > 0) {
+        const indentSegment = new GUI.Rectangle(`indent-${lineIndex}`);
+        indentSegment.width = `${Math.round(leadingIndent.length * codeSize * 0.6)}px`;
+        indentSegment.height = "38px";
+        indentSegment.thickness = 0;
+        indentSegment.background = "#00000000";
+        row.addControl(indentSegment);
+      }
+
+      if (completedCode) {
+        const typedSegment = text(`typed-${lineIndex}`, completedCode, codeSize, COLORS.lime);
+        typedSegment.height = "38px";
+        row.addControl(typedSegment);
+      }
+
+      const activeSegment = text(`active-${lineIndex}`, activeInLine ? "▍" : arena.index === lineStart + line.length ? "▍" : "", codeSize, arena.errorActive ? COLORS.coral : COLORS.lime);
       activeSegment.height = "38px";
-      const restSegment = text(`rest-${lineIndex}`, restText, codeSize, "#6E8487");
+      const restSegment = text(`rest-${lineIndex}`, `${activeChar}${restText}`, codeSize, "#6E8487");
       restSegment.height = "38px";
-      row.addControl(typedSegment);
       row.addControl(activeSegment);
       row.addControl(restSegment);
       codeContainer.addControl(row);
@@ -591,8 +606,8 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
       event.preventDefault();
       return;
     }
-    if (event.key === "Tab" || event.key === "Shift" || event.key === "CapsLock") return;
-    if (["Backspace", "Enter", " "].includes(event.key) || event.key.length === 1) event.preventDefault();
+    if (event.key === "Shift" || event.key === "CapsLock") return;
+    if (["Backspace", "Enter", " ", "Tab"].includes(event.key) || event.key.length === 1) event.preventDefault();
     const outcome = arena.handleKey(event.key);
     if (outcome === "correct") soundEngine.play("correct");
     if (outcome === "mistake") soundEngine.play("mistake");
@@ -643,7 +658,8 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
         demoAccumulator += engine.getDeltaTime();
         if (demoAccumulator > 35) {
           const next = arena.target[arena.index];
-          if (next) arena.handleKey(next === "\n" ? "Enter" : next);
+          const atIndentationStart = next === " " && (arena.index === 0 || arena.target[arena.index - 1] === "\n");
+          if (next) arena.handleKey(next === "\n" ? "Enter" : atIndentationStart ? "Tab" : next);
           demoAccumulator = 0;
         }
       }
