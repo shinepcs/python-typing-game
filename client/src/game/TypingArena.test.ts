@@ -63,14 +63,12 @@ describe("TypingArena 들여쓰기 입력", () => {
 });
 
 describe("연속 코드 연습 콘텐츠", () => {
-  it("5개·20개 워밍업은 여러 항목을 한 세트로 연속 제공한다", () => {
-    const warmupFive = MISSIONS.find((mission) => mission.id === "warmup-05");
-    const warmupTwenty = MISSIONS.find((mission) => mission.id === "warmup-20");
+  it("단어 연습 미션은 20개 항목을 한 세트로 연속 제공한다", () => {
+    const wordPractice = MISSIONS.find((mission) => mission.id === "word-practice");
 
-    expect(warmupFive?.setItems).toHaveLength(5);
-    expect(warmupFive?.setItems?.every((item) => item.length > 0)).toBe(true);
-    expect(warmupTwenty?.setItems).toHaveLength(20);
-    expect(warmupTwenty?.setItems?.every((item) => item.length > 0)).toBe(true);
+    expect(wordPractice?.kind).toBe("word");
+    expect(wordPractice?.setItems).toHaveLength(20);
+    expect(wordPractice?.setItems?.every((item) => item.length > 0)).toBe(true);
   });
 
   it("함수와 프로그램 연습에는 실행 가능한 구조와 설명 주석이 있다", () => {

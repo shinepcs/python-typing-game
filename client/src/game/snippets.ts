@@ -1,5 +1,5 @@
 export type Difficulty = "워밍업" | "기초" | "실전";
-export type PracticeKind = "warmup" | "function" | "program";
+export type PracticeKind = "word" | "function" | "program";
 
 export type Mission = {
   id: string;
@@ -16,28 +16,21 @@ export type Mission = {
 
 export const MISSIONS: Mission[] = [
   {
-    id: "warmup-05",
+    id: "word-practice",
     difficulty: "워밍업",
-    kind: "warmup",
-    title: "05자 워밍업",
-    concept: "키 리듬 · 5 chars",
-    focus: "정확한 시작",
+    kind: "word",
+    title: "단어 연습",
+    concept: "파이썬 키워드 · 단어 20개",
+    focus: "단어 리듬",
     code: "async",
-    timeLimit: 12,
-    reward: 15,
-    setItems: ["async", "await", "yield", "match", "print"],
-  },
-  {
-    id: "warmup-20",
-    difficulty: "워밍업",
-    kind: "warmup",
-    title: "20자 워밍업",
-    concept: "키 리듬 · 20 chars",
-    focus: "연속 입력",
-    code: "async",
-    timeLimit: 12,
-    reward: 20,
-    setItems: ["async", "await", "yield", "match", "print", "input", "range", "split", "strip", "lower", "upper", "items", "keys()", "sum()", "len()", "list()", "dict()", "True", "None", "pass"],
+    timeLimit: 90,
+    reward: 30,
+    setItems: [
+      "async", "await", "yield", "match", "print",
+      "input", "range", "split", "strip", "lower",
+      "upper", "items", "keys()", "sum()", "len()",
+      "list()", "dict()", "True", "None", "pass",
+    ],
   },
   {
     id: "score-report-function",

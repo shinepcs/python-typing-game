@@ -192,7 +192,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   missionTitle.fontFamily = "Space Grotesk, Noto Sans KR, sans-serif";
   missionTitle.fontWeight = "700";
   missionTitle.height = "34px";
-  const missionBody = text("mission-body", "5·20자 워밍업 후\n함수·프로그램 코드로\n연속 연습합니다.", 14, COLORS.muted);
+  const missionBody = text("mission-body", "단어 연습 후\n함수·프로그램 코드로\n연속 연습합니다.", 14, COLORS.muted);
   missionBody.height = "70px";
   missionStack.addControl(missionKicker);
   missionStack.addControl(missionTitle);
@@ -412,7 +412,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   overlay.isPointerBlocker = true;
   const overlayCard = frame("overlay-card", "#091923F5");
   overlayCard.width = "430px";
-  overlayCard.height = "380px";
+  overlayCard.height = "430px";
   overlayCard.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
   overlayCard.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
   const overlayStack = new GUI.StackPanel("overlay-stack");
@@ -620,10 +620,10 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
       missionButton.background = selected ? COLORS.lime : "#0E202A";
       missionButton.color = selected ? COLORS.base : COLORS.ink;
     });
-    functionEntry.background = index === 2 ? COLORS.lime : "#0E202A";
-    functionEntry.color = index === 2 ? COLORS.base : COLORS.ink;
-    programEntry.background = index === 3 ? COLORS.lime : "#0E202A";
-    programEntry.color = index === 3 ? COLORS.base : COLORS.ink;
+    functionEntry.background = index === 1 ? COLORS.lime : "#0E202A";
+    functionEntry.color = index === 1 ? COLORS.base : COLORS.ink;
+    programEntry.background = index === 2 ? COLORS.lime : "#0E202A";
+    programEntry.color = index === 2 ? COLORS.base : COLORS.ink;
     overlay.isVisible = false;
     inputHint.text = `${MISSIONS[index].concept} 미션을 장전했습니다. 스프린트를 시작하세요.`;
     restart.textBlock!.text = "▶  연습 시작";
@@ -673,7 +673,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
     primaryAction.textBlock!.text = setItems ? "↻  같은 세트 다시" : "↻  같은 미션 다시 도전";
     nextMissionAction.textBlock!.text = `→  추천: ${recommendedMission.title}`;
     nextMissionAction.metadata = safeRecommendedIndex;
-    nextMissionAction.isVisible = false;
+    nextMissionAction.isVisible = true;
     announce(`결과: 분당 타수 ${arena.cpm}, 정확도 ${arena.accuracy}퍼센트, ${latestEarnedXp} XP를 획득했습니다.`);
   };
 
@@ -897,8 +897,8 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
     missionDeckPage = (missionDeckPage + 1) % Math.ceil(MISSIONS.length / 3);
     refreshMissionDeck();
   });
-  functionEntry.onPointerUpObservable.add(() => selectMission(2));
-  programEntry.onPointerUpObservable.add(() => selectMission(3));
+  functionEntry.onPointerUpObservable.add(() => selectMission(1));
+  programEntry.onPointerUpObservable.add(() => selectMission(2));
   nextMissionAction.onPointerUpObservable.add(() => {
     const targetIndex = Number(nextMissionAction.metadata ?? 0);
     missionDeckPage = Math.floor(targetIndex / 3);
