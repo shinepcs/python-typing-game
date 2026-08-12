@@ -239,7 +239,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   const terminalHeader = new GUI.Grid("terminal-header");
   terminalHeader.height = "30px";
   terminalHeader.addColumnDefinition(1, false);
-  terminalHeader.addColumnDefinition(130, true);
+  terminalHeader.addColumnDefinition(200, true);
   const prompt = text("terminal-prompt", "> KEEP THE FLOW", 14, COLORS.lime);
   const language = text("language", "PYTHON 3.13", 13, COLORS.muted);
   language.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
@@ -795,7 +795,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
     const mission: Mission = arena.activeMission;
     const setItems = mission.setItems;
     conceptText.text = `${mission.concept}  /  ${mission.difficulty.toUpperCase()}${setItems ? `  ·  ${practiceSetIndex + 1}/${setItems.length}` : ""}`;
-    language.text = `${mission.title.toUpperCase()}  ·  PYTHON 3.13`;
+    language.text = "PYTHON 3.13";
     characterCount.text = setItems ? `${practiceSetIndex + 1}/${setItems.length} · ${arena.index}/${arena.target.length}` : `${arena.index} / ${arena.target.length}`;
     progressFill.width = `${arena.progress * 100}%`;
     // 오버레이가 열려 있으면 수치 갱신 중단 (오버레이 중 분당 타수 변화 방지)
