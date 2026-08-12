@@ -273,25 +273,6 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   codeContainer.height = "360px";
   codeContainer.paddingTop = "14px";
   terminalStack.addControl(codeContainer);
-  // ── 오타 토스트 배너 (코드 영역 바로 아래, 첫 줄 오타 시 표시) ──
-  const toastBanner = new GUI.Rectangle("toast-banner");
-  toastBanner.width = "100%";
-  toastBanner.height = "32px";
-  toastBanner.cornerRadius = 5;
-  toastBanner.thickness = 1;
-  toastBanner.color = COLORS.coral;
-  toastBanner.background = "#3A141B";
-  toastBanner.isVisible = false;
-  toastBanner.zIndex = 10;
-  const toastBannerText = text("toast-banner-text", "", 13, COLORS.coral);
-  toastBannerText.resizeToFit = false;
-  toastBannerText.width = "100%";
-  toastBannerText.height = "32px";
-  toastBannerText.paddingLeft = "14px";
-  toastBannerText.paddingRight = "14px";
-  toastBannerText.textWrapping = GUI.TextWrapping.Clip;
-  toastBanner.addControl(toastBannerText);
-  terminalStack.addControl(toastBanner);
   const statusStrip = new GUI.Grid("status-strip");
   statusStrip.height = "44px";
   statusStrip.addColumnDefinition(1, false);
@@ -557,9 +538,9 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   let practiceSetIndex = 0;
   let focusMode = false;
   let lastFeedbackKey = "";
-  // ── 오타 토스트 상태 ──────────────────────────────────────────────
-  let toastTimer = 0;
-  let toastMessage = "";
+  // ── 오타 번쩍임 상태 ─────────────────────────────────────────────
+  let flashTimer = 0;       // 남은 번쩍임 시간(ms)
+  let flashIndex = -1;      // 번쩍일 문자 인덱스
   let lastErrorActive = false;
   overlay.isVisible = false;
 
@@ -719,7 +700,6 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
       const lineStart = lineOffsets[lineIndex] ?? target.length;
       const isPlaceholder = lineIndex >= lines.length;
       const isActiveLine = lineIndex === activeLine;
-      const isPrevLine = lineIndex === activeLine - 1;
       const row = new GUI.Rectangle(`code-row-${lineIndex}`);
       row.height = "52px";
       row.width = "100%";
@@ -741,13 +721,31 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
       const activeInLine = arena.index >= lineStart && arena.index < lineStart + line.length;
 
       line.split("").forEach((character, characterIndex) => {
-        const characterCell = text(`cell-${lineIndex}-${characterIndex}`, character, codeSize, characterIndex < typedLength ? COLORS.lime : "#6E8487");
+        const globalCharIndex = lineStart + characterIndex;
+        const isFlashChar = flashTimer > 0 && globalCharIndex === flashIndex;
+        const charColor = characterIndex < typedLength ? COLORS.lime : "#6E8487";
+        const characterCell = text(`cell-${lineIndex}-${characterIndex}`, character, codeSize, isFlashChar ? "#FFFFFF" : charColor);
         characterCell.width = `${characterWidth}px`;
         characterCell.height = "46px";
         characterCell.resizeToFit = false;
         characterCell.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
         characterCell.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
         characterCell.left = `${numberWidth + characterIndex * characterWidth}px`;
+        if (isFlashChar) {
+          // 번쩍임: 빨간 배경 사각형을 글자 뒤에 깔기
+          const flashBg = new GUI.Rectangle(`flash-bg-${lineIndex}-${characterIndex}`);
+          flashBg.width = `${characterWidth}px`;
+          flashBg.height = "38px";
+          flashBg.background = `rgba(220,60,60,${Math.min(0.85, flashTimer / 120)})`;
+          flashBg.thickness = 0;
+          flashBg.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+          flashBg.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
+          flashBg.left = `${numberWidth + characterIndex * characterWidth}px`;
+          flashBg.top = "4px";
+          flashBg.zIndex = 1;
+          row.addControl(flashBg);
+          characterCell.zIndex = 2;
+        }
         row.addControl(characterCell);
       });
 
@@ -789,31 +787,6 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
         feedbackBubble.addControl(feedbackText);
         row.addControl(feedbackBubble);
       }
-      // ── 오타 토스트 버블 (현재 줄 1줄 위에 표시) ─────────────────
-      if (isPrevLine && toastTimer > 0 && !compactCode) {
-        const toastBubble = new GUI.Rectangle(`toast-bubble-${lineIndex}`);
-        toastBubble.width = "240px";
-        toastBubble.height = "32px";
-        toastBubble.cornerRadius = 5;
-        toastBubble.thickness = 1;
-        toastBubble.color = COLORS.coral;
-        toastBubble.background = "#3A141B";
-        toastBubble.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-        toastBubble.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
-        toastBubble.top = "-2px";
-        toastBubble.left = `${numberWidth}px`;
-        toastBubble.zIndex = 10;
-        toastBubble.alpha = Math.min(1, toastTimer / 400);
-        const toastText = text(`toast-text-${lineIndex}`, toastMessage, 13, COLORS.coral);
-        toastText.resizeToFit = false;
-        toastText.width = "232px";
-        toastText.height = "32px";
-        toastText.paddingLeft = "10px";
-        toastText.paddingRight = "10px";
-        toastText.textWrapping = GUI.TextWrapping.Clip;
-        toastBubble.addControl(toastText);
-        row.addControl(toastBubble);
-      }
       codeContainer.addControl(row);
     }
   };
@@ -837,31 +810,17 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
     const compactView = engine.getRenderWidth() < 800;
     inputHint.text = arena.status === "paused" ? (compactView ? "일시정지 · ESC로 계속" : "일시정지됨 · ESC로 계속하기") : arena.errorActive ? (compactView ? "오타 · 현재 문자를 다시 입력" : "오타입니다. 현재 문자를 다시 입력하세요.") : arena.status === "playing" ? (compactView ? "입력 흐름 유지 중" : "지금 흐름이 좋습니다. 정확도를 지키세요.") : (compactView ? "아무 키를 누르면 시작" : "키보드를 누르면 즉시 시작됩니다.");
     inputHint.color = arena.errorActive ? COLORS.coral : COLORS.muted;
-    const feedbackKey = `${arena.status}-${arena.errorActive}-${arena.autoIndentActive}-${practiceSetIndex}-${arena.accuracy}-${arena.cpm}-${Math.floor(toastTimer / 100)}`;
-    // ── 오타 토스트 타이머 갱신 ──────────────────────────────────────
+    const feedbackKey = `${arena.status}-${arena.errorActive}-${arena.autoIndentActive}-${practiceSetIndex}-${arena.accuracy}-${arena.cpm}-${Math.floor(flashTimer / 60)}`;
+    // ── 오타 번쩍임 타이머 갱신 ─────────────────────────────────────
     const dt = engine.getDeltaTime();
     if (arena.errorActive && !lastErrorActive) {
-      toastMessage = "⚠ 오타 · 현재 문자를 다시 입력하세요";
-      toastTimer = 1500;
-    } else if (toastTimer > 0) {
-      toastTimer = Math.max(0, toastTimer - dt);
+      // 새 오타: 현재 커서 위치 글자에 번쩍임 시작
+      flashIndex = arena.index;
+      flashTimer = 600;
+    } else if (flashTimer > 0) {
+      flashTimer = Math.max(0, flashTimer - dt);
     }
     lastErrorActive = arena.errorActive;
-    // 첫 줄(activeLine === 0)에서 오타 발생 시 코드 아래 배너 표시
-    {
-      const target = arena.target;
-      const lines = target.split("\n");
-      const lineOffsets: number[] = [];
-      let cur = 0;
-      lines.forEach((l) => { lineOffsets.push(cur); cur += l.length + 1; });
-      const activeLine = Math.max(0, lines.findIndex((l, i) => arena.index <= lineOffsets[i] + l.length));
-      const showBanner = activeLine === 0 && toastTimer > 0;
-      toastBanner.isVisible = showBanner;
-      if (showBanner) {
-        toastBannerText.text = toastMessage;
-        toastBanner.alpha = Math.min(1, toastTimer / 400);
-      }
-    }
     if (arena.index !== lastIndex || mission.id !== lastMissionId || feedbackKey !== lastFeedbackKey) {
       renderCode();
       lastIndex = arena.index;
