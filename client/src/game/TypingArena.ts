@@ -13,6 +13,8 @@ export class TypingArena {
   private pausedAt = 0;
   private pausedDuration = 0;
   private lastErrorAt = 0;
+  private lastAutoIndentAt = 0;
+  private autoIndentLength = 0;
   private mistakeMap: Record<string, number> = {};
 
   constructor(mission: Mission) {
@@ -33,6 +35,8 @@ export class TypingArena {
     this.pausedAt = 0;
     this.pausedDuration = 0;
     this.lastErrorAt = 0;
+    this.lastAutoIndentAt = 0;
+    this.autoIndentLength = 0;
     this.mistakeMap = {};
   }
 
@@ -97,6 +101,10 @@ export class TypingArena {
         const nextIndentation = this.mission.code.slice(this.typedIndex).match(/^ +/)?.[0] ?? "";
         this.typedIndex += nextIndentation.length;
         this.correctKeys += nextIndentation.length;
+        if (nextIndentation.length > 0) {
+          this.autoIndentLength = nextIndentation.length;
+          this.lastAutoIndentAt = performance.now();
+        }
       }
       if (this.typedIndex >= this.mission.code.length) {
         this.mode = "complete";
@@ -164,6 +172,14 @@ export class TypingArena {
 
   public get errorActive() {
     return performance.now() - this.lastErrorAt < 360;
+  }
+
+  public get autoIndentActive() {
+    return this.autoIndentLength > 0 && performance.now() - this.lastAutoIndentAt < 1100;
+  }
+
+  public get autoIndentLevels() {
+    return Math.max(1, Math.ceil(this.autoIndentLength / 4));
   }
 
   public get errorsByCharacter() {

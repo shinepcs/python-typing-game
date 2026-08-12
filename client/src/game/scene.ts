@@ -455,7 +455,17 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   let missionDeckPage = 0;
   let practiceSetIndex = 0;
   let focusMode = false;
+  let lastFeedbackKey = "";
   overlay.isVisible = false;
+
+  const nearbyFeedback = () => {
+    const setItems = arena.activeMission.setItems;
+    if (arena.errorActive) return { text: "오타 · 현재 문자를 다시 입력", color: COLORS.coral, background: "#3A141B" };
+    if (arena.autoIndentActive) return { text: `자동 들여쓰기 · ${arena.autoIndentLevels}단계 적용`, color: COLORS.cyan, background: "#0B2630" };
+    if (arena.status === "paused") return { text: "일시정지 · ESC로 계속", color: COLORS.cyan, background: "#0B2630" };
+    if (setItems) return { text: `연속 세트 · ${practiceSetIndex + 1}/${setItems.length} 항목`, color: COLORS.lime, background: "#182A1A" };
+    return { text: `정확도 ${arena.accuracy}% · 분당 타수 ${arena.cpm}`, color: COLORS.lime, background: "#182A1A" };
+  };
 
   const announce = (message: string) => {
     const liveRegion = document.getElementById("arena-live");
@@ -605,6 +615,26 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
         marker.top = "-1px";
         row.addControl(marker);
       }
+      if (lineIndex === activeLine) {
+        const feedback = nearbyFeedback();
+        const feedbackBubble = new GUI.Rectangle(`feedback-bubble-${lineIndex}`);
+        feedbackBubble.width = compactCode ? "172px" : "238px";
+        feedbackBubble.height = "27px";
+        feedbackBubble.cornerRadius = 5;
+        feedbackBubble.thickness = 1;
+        feedbackBubble.color = feedback.color;
+        feedbackBubble.background = feedback.background;
+        feedbackBubble.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        feedbackBubble.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        feedbackBubble.top = "4px";
+        feedbackBubble.zIndex = 5;
+        const feedbackText = text(`feedback-text-${lineIndex}`, feedback.text, compactCode ? 10 : 11, feedback.color);
+        feedbackText.height = "27px";
+        feedbackText.paddingLeft = "10px";
+        feedbackText.paddingRight = "10px";
+        feedbackBubble.addControl(feedbackText);
+        row.addControl(feedbackBubble);
+      }
       codeContainer.addControl(row);
     }
   };
@@ -627,10 +657,12 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
     streakCaption.text = progressStore.snapshot.dailyStreak > 0 ? `${progressStore.snapshot.dailyStreak}일 연속 학습 중` : "첫 리듬을 시작하세요.";
     inputHint.text = arena.status === "paused" ? "일시정지됨 · ESC로 계속하기" : arena.errorActive ? "오타입니다. 현재 문자를 다시 입력하세요." : arena.status === "playing" ? "지금 흐름이 좋습니다. 정확도를 지키세요." : "키보드를 누르면 즉시 시작됩니다.";
     inputHint.color = arena.errorActive ? COLORS.coral : COLORS.muted;
-    if (arena.index !== lastIndex || mission.id !== lastMissionId) {
+    const feedbackKey = `${arena.status}-${arena.errorActive}-${arena.autoIndentActive}-${practiceSetIndex}-${arena.accuracy}-${arena.cpm}`;
+    if (arena.index !== lastIndex || mission.id !== lastMissionId || feedbackKey !== lastFeedbackKey) {
       renderCode();
       lastIndex = arena.index;
       lastMissionId = mission.id;
+      lastFeedbackKey = feedbackKey;
     }
   };
 

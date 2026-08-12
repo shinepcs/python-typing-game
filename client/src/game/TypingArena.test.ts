@@ -56,6 +56,8 @@ describe("TypingArena 들여쓰기 입력", () => {
     }
     expect(arena.handleKey("Enter")).toBe("correct");
     expect(arena.target[arena.index]).toBe("e");
+    expect(arena.autoIndentActive).toBe(true);
+    expect(arena.autoIndentLevels).toBe(2);
     expect(arena.handleKey("e")).toBe("correct");
   });
 });
