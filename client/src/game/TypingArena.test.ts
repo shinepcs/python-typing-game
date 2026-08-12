@@ -37,14 +37,14 @@ describe("TypingArena 들여쓰기 입력", () => {
 });
 
 describe("연속 코드 연습 콘텐츠", () => {
-  it("5자·20자 워밍업은 선택 화면 없이 반복 가능한 길이로 제공한다", () => {
+  it("5개·20개 워밍업은 여러 항목을 한 세트로 연속 제공한다", () => {
     const warmupFive = MISSIONS.find((mission) => mission.id === "warmup-05");
     const warmupTwenty = MISSIONS.find((mission) => mission.id === "warmup-20");
 
-    expect(warmupFive?.code).toHaveLength(5);
-    expect(warmupFive?.continuous).toBe(true);
-    expect(warmupTwenty?.code).toHaveLength(20);
-    expect(warmupTwenty?.continuous).toBe(true);
+    expect(warmupFive?.setItems).toHaveLength(5);
+    expect(warmupFive?.setItems?.every((item) => item.length > 0)).toBe(true);
+    expect(warmupTwenty?.setItems).toHaveLength(20);
+    expect(warmupTwenty?.setItems?.every((item) => item.length > 0)).toBe(true);
   });
 
   it("함수와 프로그램 연습에는 실행 가능한 구조와 설명 주석이 있다", () => {
@@ -53,7 +53,9 @@ describe("연속 코드 연습 콘텐츠", () => {
 
     expect(functionPractice?.code).toContain("# Convert raw scores");
     expect(functionPractice?.code).toContain("def build_score_report");
+    expect(functionPractice?.kind).toBe("function");
     expect(programPractice?.code).toContain("# Save completed tasks");
     expect(programPractice?.code).toContain('if __name__ == "__main__":');
+    expect(programPractice?.kind).toBe("program");
   });
 });

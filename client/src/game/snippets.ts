@@ -11,7 +11,7 @@ export type Mission = {
   code: string;
   timeLimit: number;
   reward: number;
-  continuous?: boolean;
+  setItems?: string[];
 };
 
 export const MISSIONS: Mission[] = [
@@ -23,9 +23,9 @@ export const MISSIONS: Mission[] = [
     concept: "키 리듬 · 5 chars",
     focus: "정확한 시작",
     code: "async",
-    timeLimit: 20,
+    timeLimit: 12,
     reward: 15,
-    continuous: true,
+    setItems: ["async", "await", "yield", "match", "print"],
   },
   {
     id: "warmup-20",
@@ -34,10 +34,10 @@ export const MISSIONS: Mission[] = [
     title: "20자 워밍업",
     concept: "키 리듬 · 20 chars",
     focus: "연속 입력",
-    code: "python_code_training",
-    timeLimit: 35,
-    reward: 30,
-    continuous: true,
+    code: "async",
+    timeLimit: 12,
+    reward: 20,
+    setItems: ["async", "await", "yield", "match", "print", "input", "range", "split", "strip", "lower", "upper", "items", "keys()", "sum()", "len()", "list()", "dict()", "True", "None", "pass"],
   },
   {
     id: "score-report-function",

@@ -212,6 +212,17 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   deckButton.height = "38px";
   deckButton.width = "100%";
   missionStack.addControl(deckButton);
+  const practicalKicker = text("practical-kicker", "PRACTICAL CODE", 10, COLORS.cyan);
+  practicalKicker.height = "24px";
+  missionStack.addControl(practicalKicker);
+  const functionEntry = button("function-entry", "ƒ  함수 코드 연습", false);
+  functionEntry.height = "38px";
+  functionEntry.width = "100%";
+  missionStack.addControl(functionEntry);
+  const programEntry = button("program-entry", "▣  프로그램 코드 연습", false);
+  programEntry.height = "38px";
+  programEntry.width = "100%";
+  missionStack.addControl(programEntry);
   const rule = new GUI.Rectangle("rail-rule");
   rule.height = "1px";
   rule.width = "100%";
@@ -442,6 +453,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   let sessionRecorded = false;
   let latestEarnedXp = 0;
   let missionDeckPage = 0;
+  let practiceSetIndex = 0;
   let focusMode = false;
   overlay.isVisible = false;
 
@@ -464,13 +476,19 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
 
   const selectMission = (index: number) => {
     selectedMissionIndex = index;
-    arena.setMission(MISSIONS[index]);
+    practiceSetIndex = 0;
+    const mission = MISSIONS[index];
+    arena.setMission({ ...mission, code: mission.setItems?.[0] ?? mission.code });
     sessionRecorded = false;
     missionButtons.forEach((missionButton, itemIndex) => {
       const selected = visibleMissionIndexes[itemIndex] === index;
       missionButton.background = selected ? COLORS.lime : "#0E202A";
       missionButton.color = selected ? COLORS.base : COLORS.ink;
     });
+    functionEntry.background = index === 2 ? COLORS.lime : "#0E202A";
+    functionEntry.color = index === 2 ? COLORS.base : COLORS.ink;
+    programEntry.background = index === 3 ? COLORS.lime : "#0E202A";
+    programEntry.color = index === 3 ? COLORS.base : COLORS.ink;
     overlay.isVisible = false;
     inputHint.text = `${MISSIONS[index].concept} 미션을 장전했습니다. 스프린트를 시작하세요.`;
     restart.textBlock!.text = "▶  연습 시작";
@@ -499,23 +517,25 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
       sessionRecorded = true;
     }
     const weakCharacters = progressStore.weakCharacters();
-    if (arena.activeMission.continuous) {
-      const completedTitle = arena.activeMission.title;
-      arena.reset();
+    const setItems = arena.activeMission.setItems;
+    if (setItems && practiceSetIndex < setItems.length - 1) {
+      practiceSetIndex += 1;
+      const baseMission = MISSIONS[selectedMissionIndex];
+      arena.setMission({ ...baseMission, code: setItems[practiceSetIndex] });
       sessionRecorded = false;
       startRound();
-      inputHint.text = `${completedTitle} 완료 · 같은 리듬을 바로 이어갑니다.`;
-      announce(`${completedTitle}을 완료했습니다. 다음 반복을 바로 시작합니다.`);
+      inputHint.text = `${practiceSetIndex + 1}/${setItems.length} 항목으로 바로 이어갑니다.`;
+      announce(`${arena.activeMission.title} 세트의 ${practiceSetIndex + 1}번째 항목을 시작합니다.`);
       return;
     }
     const recommendedIndex = MISSIONS.findIndex((mission) => !progressStore.snapshot.completedMissionIds.includes(mission.id) && mission.id !== arena.activeMission.id);
     const safeRecommendedIndex = recommendedIndex >= 0 ? recommendedIndex : (selectedMissionIndex + 1) % MISSIONS.length;
     const recommendedMission = MISSIONS[safeRecommendedIndex];
     overlay.isVisible = true;
-    overlayKicker.text = arena.timeRemaining <= 0 && arena.progress < 1 ? "TIME OUT  /  SIGNAL SAVED" : "SEQUENCE COMPLETE  /  XP ADDED";
-    overlayTitle.text = arena.timeRemaining <= 0 && arena.progress < 1 ? "한 번 더,\n더 정확하게." : "흐름을\n완성했습니다.";
+    overlayKicker.text = arena.timeRemaining <= 0 && arena.progress < 1 ? "TIME OUT  /  SIGNAL SAVED" : setItems ? "WARMUP SET COMPLETE  /  XP ADDED" : "SEQUENCE COMPLETE  /  XP ADDED";
+    overlayTitle.text = arena.timeRemaining <= 0 && arena.progress < 1 ? "한 번 더,\n더 정확하게." : setItems ? `${setItems.length}개 항목을\n완주했습니다.` : "흐름을\n완성했습니다.";
     overlayDesc.text = `WPM ${arena.wpm}  ·  정확도 ${arena.accuracy}%  ·  +${latestEarnedXp} XP\nLV. ${progressStore.level}  ·  ${weakCharacters.length ? `복습 신호: ${weakCharacters.join(" · ")}` : "완벽한 흐름입니다."}`;
-    primaryAction.textBlock!.text = "↻  같은 미션 다시 도전";
+    primaryAction.textBlock!.text = setItems ? "↻  같은 세트 다시" : "↻  같은 미션 다시 도전";
     nextMissionAction.textBlock!.text = `→  추천: ${recommendedMission.title}`;
     nextMissionAction.metadata = safeRecommendedIndex;
     nextMissionAction.isVisible = false;
@@ -607,9 +627,10 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
 
   const updateHud = () => {
     const mission: Mission = arena.activeMission;
-    conceptText.text = `${mission.concept}  /  ${mission.difficulty.toUpperCase()}`;
+    const setItems = mission.setItems;
+    conceptText.text = `${mission.concept}  /  ${mission.difficulty.toUpperCase()}${setItems ? `  ·  ${practiceSetIndex + 1}/${setItems.length}` : ""}`;
     language.text = `${mission.title.toUpperCase()}  ·  PYTHON 3.13`;
-    characterCount.text = `${arena.index} / ${arena.target.length}`;
+    characterCount.text = setItems ? `${practiceSetIndex + 1}/${setItems.length} · ${arena.index}/${arena.target.length}` : `${arena.index} / ${arena.target.length}`;
     progressFill.width = `${arena.progress * 100}%`;
     accuracyText.text = `${arena.accuracy}%`;
     accuracyDial.color = arena.accuracy < 90 ? COLORS.coral : COLORS.lime;
@@ -660,7 +681,9 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
 
   primaryAction.onPointerUpObservable.add(() => {
     if (arena.status === "complete") {
-      arena.reset();
+      const mission = MISSIONS[selectedMissionIndex];
+      practiceSetIndex = 0;
+      arena.setMission({ ...mission, code: mission.setItems?.[0] ?? mission.code });
       sessionRecorded = false;
     }
     startRound();
@@ -683,6 +706,8 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
     missionDeckPage = (missionDeckPage + 1) % Math.ceil(MISSIONS.length / 3);
     refreshMissionDeck();
   });
+  functionEntry.onPointerUpObservable.add(() => selectMission(2));
+  programEntry.onPointerUpObservable.add(() => selectMission(3));
   nextMissionAction.onPointerUpObservable.add(() => {
     const targetIndex = Number(nextMissionAction.metadata ?? 0);
     missionDeckPage = Math.floor(targetIndex / 3);
