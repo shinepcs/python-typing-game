@@ -208,21 +208,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
     missionButtons.push(entry);
     missionStack.addControl(entry);
   });
-  const deckButton = button("mission-deck", "⟳  다른 미션 세트", false);
-  deckButton.height = "38px";
-  deckButton.width = "100%";
-  missionStack.addControl(deckButton);
-  const practicalKicker = text("practical-kicker", "PRACTICAL CODE", 13, COLORS.cyan);
-  practicalKicker.height = "24px";
-  missionStack.addControl(practicalKicker);
-  const functionEntry = button("function-entry", "ƒ  함수 코드 연습", false);
-  functionEntry.height = "38px";
-  functionEntry.width = "100%";
-  missionStack.addControl(functionEntry);
-  const programEntry = button("program-entry", "▣  프로그램 코드 연습", false);
-  programEntry.height = "38px";
-  programEntry.width = "100%";
-  missionStack.addControl(programEntry);
+
   const rule = new GUI.Rectangle("rail-rule");
   rule.height = "1px";
   rule.width = "100%";
@@ -597,6 +583,22 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
     });
   };
 
+  // 선택 상태 hover 색상 유지: selectMission 후 버튼 hover 핸들러를 재설정하는 헬퍼
+  const updateMissionButtonHover = () => {
+    missionButtons.forEach((missionButton, itemIndex) => {
+      const isSelected = visibleMissionIndexes[itemIndex] === selectedMissionIndex;
+      missionButton.onPointerOutObservable.clear();
+      missionButton.onPointerEnterObservable.clear();
+      if (isSelected) {
+        missionButton.onPointerEnterObservable.add(() => { missionButton.background = "#DCFf82"; });
+        missionButton.onPointerOutObservable.add(() => { missionButton.background = COLORS.lime; });
+      } else {
+        missionButton.onPointerEnterObservable.add(() => { missionButton.background = "#173541"; });
+        missionButton.onPointerOutObservable.add(() => { missionButton.background = "#0E202A"; });
+      }
+    });
+  };
+
   const refreshMissionDeck = () => {
     missionButtons.forEach((missionButton, slot) => {
       const missionIndex = (missionDeckPage * 3 + slot) % MISSIONS.length;
@@ -607,6 +609,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
       missionButton.background = selected ? COLORS.lime : "#0E202A";
       missionButton.color = selected ? COLORS.base : COLORS.ink;
     });
+    updateMissionButtonHover();
   };
 
   const selectMission = (index: number) => {
@@ -620,11 +623,8 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
       missionButton.background = selected ? COLORS.lime : "#0E202A";
       missionButton.color = selected ? COLORS.base : COLORS.ink;
     });
-    functionEntry.background = index === 1 ? COLORS.lime : "#0E202A";
-    functionEntry.color = index === 1 ? COLORS.base : COLORS.ink;
-    programEntry.background = index === 2 ? COLORS.lime : "#0E202A";
-    programEntry.color = index === 2 ? COLORS.base : COLORS.ink;
     overlay.isVisible = false;
+    updateMissionButtonHover();
     inputHint.text = `${MISSIONS[index].concept} 미션을 장전했습니다. 스프린트를 시작하세요.`;
     restart.textBlock!.text = "▶  연습 시작";
     announce(`${MISSIONS[index].title} 미션을 선택했습니다. ${MISSIONS[index].concept} 연습을 시작할 수 있습니다.`);
@@ -892,13 +892,9 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   dashboardClose.onPointerUpObservable.add(() => {
     dashboardOverlay.isVisible = false;
   });
-  missionButtons.forEach((missionButton, index) => missionButton.onPointerUpObservable.add(() => selectMission(visibleMissionIndexes[index])));
-  deckButton.onPointerUpObservable.add(() => {
-    missionDeckPage = (missionDeckPage + 1) % Math.ceil(MISSIONS.length / 3);
-    refreshMissionDeck();
+  missionButtons.forEach((missionButton, index) => {
+    missionButton.onPointerUpObservable.add(() => selectMission(visibleMissionIndexes[index]));
   });
-  functionEntry.onPointerUpObservable.add(() => selectMission(1));
-  programEntry.onPointerUpObservable.add(() => selectMission(2));
   nextMissionAction.onPointerUpObservable.add(() => {
     const targetIndex = Number(nextMissionAction.metadata ?? 0);
     missionDeckPage = Math.floor(targetIndex / 3);
