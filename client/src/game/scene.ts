@@ -4,6 +4,8 @@ import { FreeCamera } from "@babylonjs/core/Cameras/freeCamera";
 import { Engine } from "@babylonjs/core/Engines/engine";
 import { Scene } from "@babylonjs/core/scene";
 import * as GUI from "@babylonjs/gui";
+import { ProgressStore } from "./progress";
+import { SoundEngine } from "./SoundEngine";
 import { MISSIONS, type Mission } from "./snippets";
 import { TypingArena } from "./TypingArena";
 
@@ -106,7 +108,8 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   const headerGrid = new GUI.Grid("header-grid");
   headerGrid.addColumnDefinition(1, false);
   headerGrid.addColumnDefinition(256, true);
-  headerGrid.addColumnDefinition(120, true);
+  headerGrid.addColumnDefinition(92, true);
+  headerGrid.addColumnDefinition(104, true);
   header.addControl(headerGrid);
 
   const identity = new GUI.StackPanel("identity");
@@ -162,9 +165,14 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   xpStack.addControl(xpTrack);
   headerGrid.addControl(xpStack, 0, 1);
 
-  const liveMark = text("live-mark", "●  LIVE", 11, COLORS.lime);
-  liveMark.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
-  headerGrid.addControl(liveMark, 0, 2);
+  const soundToggle = button("sound-toggle", "SFX  ON", false);
+  soundToggle.width = "84px";
+  soundToggle.height = "34px";
+  headerGrid.addControl(soundToggle, 0, 2);
+  const focusToggle = button("focus-toggle", "FOCUS", false);
+  focusToggle.width = "96px";
+  focusToggle.height = "34px";
+  headerGrid.addControl(focusToggle, 0, 3);
   layout.addControl(header, 0, 0);
 
   const arenaGrid = new GUI.Grid("arena-grid");
@@ -189,15 +197,21 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   missionStack.addControl(missionKicker);
   missionStack.addControl(missionTitle);
   missionStack.addControl(missionBody);
+  const visibleMissionIndexes = [0, 1, 2];
   const missionButtons: GUI.Button[] = [];
-  MISSIONS.forEach((mission, index) => {
-    const entry = button(`mission-${mission.id}`, `${String(index + 1).padStart(2, "0")}  ${mission.title}`, index === 0);
+  visibleMissionIndexes.forEach((missionIndex, index) => {
+    const mission = MISSIONS[missionIndex];
+    const entry = button(`mission-${mission.id}`, `${String(missionIndex + 1).padStart(2, "0")}  ${mission.title}`, index === 0);
     entry.height = "48px";
     entry.width = "100%";
     entry.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
     missionButtons.push(entry);
     missionStack.addControl(entry);
   });
+  const deckButton = button("mission-deck", "⟳  다른 미션 세트", false);
+  deckButton.height = "38px";
+  deckButton.width = "100%";
+  missionStack.addControl(deckButton);
   const rule = new GUI.Rectangle("rail-rule");
   rule.height = "1px";
   rule.width = "100%";
@@ -368,7 +382,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   const footer = new GUI.Grid("footer");
   footer.addColumnDefinition(1, false);
   footer.addColumnDefinition(1, false);
-  const footerLeft = text("footer-left", "[ ESC ] pause  ·  [ BACKSPACE ] revise  ·  [ ENTER ] new line", 10, COLORS.muted);
+  const footerLeft = text("footer-left", "[ ESC ] pause  ·  [ BACKSPACE ] revise  ·  [ ALT+F ] focus  ·  [ ALT+S ] sound", 10, COLORS.muted);
   const footerRight = text("footer-right", "SYSTEM READY  /  v1.0", 10, COLORS.muted);
   footerRight.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
   footer.addControl(footerLeft, 0, 0);
@@ -383,7 +397,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   overlay.isPointerBlocker = true;
   const overlayCard = frame("overlay-card", "#091923F5");
   overlayCard.width = "430px";
-  overlayCard.height = "330px";
+  overlayCard.height = "380px";
   overlayCard.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
   overlayCard.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
   const overlayStack = new GUI.StackPanel("overlay-stack");
@@ -406,45 +420,97 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   overlayStack.addControl(overlayTitle);
   overlayStack.addControl(overlayDesc);
   overlayStack.addControl(primaryAction);
+  const nextMissionAction = button("next-mission", "다음 추천 미션", false);
+  nextMissionAction.width = "100%";
+  nextMissionAction.height = "42px";
+  nextMissionAction.isVisible = false;
+  overlayStack.addControl(nextMissionAction);
   overlayCard.addControl(overlayStack);
   overlay.addControl(overlayCard);
   ui.addControl(overlay);
 
   const arena = new TypingArena(MISSIONS[0]);
+  const progressStore = new ProgressStore();
+  const soundEngine = new SoundEngine();
   let selectedMissionIndex = 0;
   let lastIndex = -1;
   let lastMissionId = "";
   const demoMode = new URLSearchParams(window.location.search).has("demo");
   let demoAccumulator = 0;
-  let demoDelay = 800;
+  let demoDelay = demoMode ? 280 : 800;
   let lastCompact: boolean | null = null;
+  let sessionRecorded = false;
+  let latestEarnedXp = 0;
+  let missionDeckPage = 0;
+  let focusMode = false;
   overlay.isVisible = false;
+
+  const announce = (message: string) => {
+    const liveRegion = document.getElementById("arena-live");
+    if (liveRegion) liveRegion.textContent = message;
+  };
+
+  const refreshMissionDeck = () => {
+    missionButtons.forEach((missionButton, slot) => {
+      const missionIndex = (missionDeckPage * 3 + slot) % MISSIONS.length;
+      const mission = MISSIONS[missionIndex];
+      visibleMissionIndexes[slot] = missionIndex;
+      missionButton.textBlock!.text = `${String(missionIndex + 1).padStart(2, "0")}  ${mission.title}`;
+      const selected = missionIndex === selectedMissionIndex;
+      missionButton.background = selected ? COLORS.lime : "#0E202A";
+      missionButton.color = selected ? COLORS.base : COLORS.ink;
+    });
+  };
 
   const selectMission = (index: number) => {
     selectedMissionIndex = index;
     arena.setMission(MISSIONS[index]);
+    sessionRecorded = false;
     missionButtons.forEach((missionButton, itemIndex) => {
-      const selected = itemIndex === index;
+      const selected = visibleMissionIndexes[itemIndex] === index;
       missionButton.background = selected ? COLORS.lime : "#0E202A";
       missionButton.color = selected ? COLORS.base : COLORS.ink;
     });
     overlay.isVisible = false;
     inputHint.text = `${MISSIONS[index].concept} 미션을 장전했습니다. 스프린트를 시작하세요.`;
     restart.textBlock!.text = "▶  스프린트 시작";
+    announce(`${MISSIONS[index].title} 미션을 선택했습니다. ${MISSIONS[index].concept} 연습을 시작할 수 있습니다.`);
   };
 
   const startRound = () => {
     arena.start();
     overlay.isVisible = false;
     restart.textBlock!.text = "↻  다시 도전";
+    nextMissionAction.isVisible = false;
+    announce(`${arena.activeMission.title} 미션을 시작했습니다.`);
   };
 
   const showResult = () => {
+    if (!sessionRecorded) {
+      latestEarnedXp = progressStore.recordSession({
+        missionId: arena.activeMission.id,
+        completed: arena.completed,
+        accuracy: arena.accuracy,
+        wpm: arena.wpm,
+        combo: arena.combo,
+        baseXp: arena.resultXp,
+        mistakeMap: arena.errorsByCharacter,
+      });
+      sessionRecorded = true;
+    }
+    const weakCharacters = progressStore.weakCharacters();
+    const recommendedIndex = MISSIONS.findIndex((mission) => !progressStore.snapshot.completedMissionIds.includes(mission.id) && mission.id !== arena.activeMission.id);
+    const safeRecommendedIndex = recommendedIndex >= 0 ? recommendedIndex : (selectedMissionIndex + 1) % MISSIONS.length;
+    const recommendedMission = MISSIONS[safeRecommendedIndex];
     overlay.isVisible = true;
     overlayKicker.text = arena.timeRemaining <= 0 && arena.progress < 1 ? "TIME OUT  /  SIGNAL SAVED" : "SEQUENCE COMPLETE  /  XP ADDED";
     overlayTitle.text = arena.timeRemaining <= 0 && arena.progress < 1 ? "한 번 더,\n더 정확하게." : "흐름을\n완성했습니다.";
-    overlayDesc.text = `WPM ${arena.wpm}  ·  정확도 ${arena.accuracy}%  ·  +${arena.resultXp} XP\n다음 미션에서 더 긴 문장을 정복하세요.`;
+    overlayDesc.text = `WPM ${arena.wpm}  ·  정확도 ${arena.accuracy}%  ·  +${latestEarnedXp} XP\nLV. ${progressStore.level}  ·  ${weakCharacters.length ? `복습 신호: ${weakCharacters.join(" · ")}` : "완벽한 흐름입니다."}`;
     primaryAction.textBlock!.text = "↻  같은 미션 다시 도전";
+    nextMissionAction.textBlock!.text = `→  추천: ${recommendedMission.title}`;
+    nextMissionAction.metadata = safeRecommendedIndex;
+    nextMissionAction.isVisible = true;
+    announce(`결과: WPM ${arena.wpm}, 정확도 ${arena.accuracy}퍼센트, ${latestEarnedXp} XP를 획득했습니다.`);
   };
 
   const renderCode = () => {
@@ -494,6 +560,9 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
     wpmNumber.text = String(arena.wpm);
     comboNumber.text = String(arena.combo);
     timerValue.text = `00:${String(Math.ceil(arena.timeRemaining)).padStart(2, "0")}`;
+    xpLabel.text = `LV. ${String(progressStore.level).padStart(2, "0")}  /  ${progressStore.levelProgress} XP`;
+    xpFill.width = `${Math.max(4, (progressStore.levelProgress / 500) * 100)}%`;
+    streakCaption.text = progressStore.snapshot.dailyStreak > 0 ? `${progressStore.snapshot.dailyStreak}일 연속 학습 중` : "첫 리듬을 시작하세요.";
     inputHint.text = arena.status === "paused" ? "일시정지됨 · ESC로 계속하기" : arena.errorActive ? "오타입니다. 현재 문자를 다시 입력하세요." : arena.status === "playing" ? "지금 흐름이 좋습니다. 정확도를 지키세요." : "키보드를 누르면 즉시 시작됩니다.";
     inputHint.color = arena.errorActive ? COLORS.coral : COLORS.muted;
     if (arena.index !== lastIndex || mission.id !== lastMissionId) {
@@ -504,29 +573,66 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   };
 
   const keyHandler = (event: KeyboardEvent) => {
+    if (event.altKey && event.key.toLowerCase() === "f") {
+      focusMode = !focusMode;
+      focusToggle.textBlock!.text = focusMode ? "EXIT FOCUS" : "FOCUS";
+      event.preventDefault();
+      return;
+    }
+    if (event.altKey && event.key.toLowerCase() === "s") {
+      soundToggle.textBlock!.text = soundEngine.toggle() ? "SFX  ON" : "SFX  OFF";
+      event.preventDefault();
+      return;
+    }
     if (event.metaKey || event.ctrlKey || event.altKey) return;
     if (event.key === "Escape") {
       arena.togglePause();
+      announce(arena.status === "paused" ? "미션을 일시정지했습니다." : "미션을 다시 시작했습니다.");
       event.preventDefault();
       return;
     }
     if (event.key === "Tab" || event.key === "Shift" || event.key === "CapsLock") return;
     if (["Backspace", "Enter", " "].includes(event.key) || event.key.length === 1) event.preventDefault();
-    arena.handleKey(event.key);
+    const outcome = arena.handleKey(event.key);
+    if (outcome === "correct") soundEngine.play("correct");
+    if (outcome === "mistake") soundEngine.play("mistake");
+    if (outcome === "complete") soundEngine.play("complete");
     if (arena.status === "complete") showResult();
   };
   window.addEventListener("keydown", keyHandler);
 
   primaryAction.onPointerUpObservable.add(() => {
-    if (arena.status === "complete") arena.reset();
+    if (arena.status === "complete") {
+      arena.reset();
+      sessionRecorded = false;
+    }
     startRound();
   });
   restart.onPointerUpObservable.add(() => {
     arena.reset();
+    sessionRecorded = false;
     startRound();
   });
   pause.onPointerUpObservable.add(() => arena.togglePause());
-  missionButtons.forEach((missionButton, index) => missionButton.onPointerUpObservable.add(() => selectMission(index)));
+  soundToggle.onPointerUpObservable.add(() => {
+    soundToggle.textBlock!.text = soundEngine.toggle() ? "SFX  ON" : "SFX  OFF";
+  });
+  focusToggle.onPointerUpObservable.add(() => {
+    focusMode = !focusMode;
+    focusToggle.textBlock!.text = focusMode ? "EXIT FOCUS" : "FOCUS";
+  });
+  missionButtons.forEach((missionButton, index) => missionButton.onPointerUpObservable.add(() => selectMission(visibleMissionIndexes[index])));
+  deckButton.onPointerUpObservable.add(() => {
+    missionDeckPage = (missionDeckPage + 1) % Math.ceil(MISSIONS.length / 3);
+    refreshMissionDeck();
+  });
+  nextMissionAction.onPointerUpObservable.add(() => {
+    const targetIndex = Number(nextMissionAction.metadata ?? 0);
+    missionDeckPage = Math.floor(targetIndex / 3);
+    refreshMissionDeck();
+    selectMission(targetIndex);
+    startRound();
+  });
 
   scene.onBeforeRenderObservable.add(() => {
     arena.tick();
@@ -535,7 +641,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
       if (demoDelay <= 0 && arena.status === "idle") startRound();
       if (arena.status === "playing") {
         demoAccumulator += engine.getDeltaTime();
-        if (demoAccumulator > 75) {
+        if (demoAccumulator > 35) {
           const next = arena.target[arena.index];
           if (next) arena.handleKey(next === "\n" ? "Enter" : next);
           demoAccumulator = 0;
@@ -546,21 +652,25 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
     updateHud();
 
     const compact = engine.getRenderWidth() < 800;
-    if (compact !== lastCompact) {
-      lastCompact = compact;
-      missionRail.isVisible = !compact;
-      telemetry.isVisible = !compact;
-      footer.isVisible = !compact;
+    const condensed = compact || focusMode;
+    if (condensed !== lastCompact) {
+      lastCompact = condensed;
+      missionRail.isVisible = !condensed;
+      telemetry.isVisible = !condensed;
+      footer.isVisible = !condensed;
       identity.isVisible = !compact;
-      arenaGrid.setColumnDefinition(0, compact ? 0 : 238, true);
+      soundToggle.isVisible = !compact;
+      focusToggle.isVisible = !compact;
+      arenaGrid.setColumnDefinition(0, condensed ? 0 : 238, true);
       arenaGrid.setColumnDefinition(1, 1, false);
-      arenaGrid.setColumnDefinition(2, compact ? 0 : 248, true);
+      arenaGrid.setColumnDefinition(2, condensed ? 0 : 248, true);
       headerGrid.setColumnDefinition(0, compact ? 0 : 1, false);
       headerGrid.setColumnDefinition(1, 1, false);
-      headerGrid.setColumnDefinition(2, 98, true);
+      headerGrid.setColumnDefinition(2, compact ? 0 : 92, true);
+      headerGrid.setColumnDefinition(3, compact ? 0 : 104, true);
       xpStack.width = compact ? "172px" : "230px";
-      terminal.paddingLeft = compact ? "12px" : "22px";
-      terminal.paddingRight = compact ? "12px" : "22px";
+      terminal.paddingLeft = condensed ? "12px" : "22px";
+      terminal.paddingRight = condensed ? "12px" : "22px";
       codeContainer.height = compact ? "220px" : "206px";
       lastIndex = -1;
     }

@@ -39,5 +39,11 @@ export default function GameCanvas() {
     };
   }, []);
 
-  return <canvas ref={canvasRef} className="fixed inset-0 h-full w-full outline-none" style={{ touchAction: "none" }} aria-label="PyType Arena 파이썬 타자 연습 게임" />;
+  return (
+    <>
+      <p id="arena-instructions" className="sr-only">PyType Arena 파이썬 타자 연습 게임입니다. 키보드로 화면의 코드를 입력하세요. Escape는 일시정지, Alt+F는 집중 보기, Alt+S는 사운드 토글입니다.</p>
+      <p id="arena-live" className="sr-only" aria-live="polite" aria-atomic="true" />
+      <canvas ref={canvasRef} className="fixed inset-0 h-full w-full outline-none" style={{ touchAction: "none" }} role="application" aria-label="PyType Arena 파이썬 타자 연습 게임" aria-describedby="arena-instructions arena-live" />
+    </>
+  );
 }

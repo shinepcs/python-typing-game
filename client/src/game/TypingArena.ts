@@ -1,6 +1,7 @@
 import type { Mission } from "./snippets";
 
 export type ArenaMode = "idle" | "playing" | "paused" | "complete";
+export type InputOutcome = "correct" | "mistake" | "rewind" | "complete" | "ignored";
 
 export class TypingArena {
   private mission: Mission;
@@ -12,6 +13,7 @@ export class TypingArena {
   private pausedAt = 0;
   private pausedDuration = 0;
   private lastErrorAt = 0;
+  private mistakeMap: Record<string, number> = {};
 
   constructor(mission: Mission) {
     this.mission = mission;
@@ -31,6 +33,7 @@ export class TypingArena {
     this.pausedAt = 0;
     this.pausedDuration = 0;
     this.lastErrorAt = 0;
+    this.mistakeMap = {};
   }
 
   public start() {
@@ -60,28 +63,33 @@ export class TypingArena {
     else if (this.mode === "paused") this.resume();
   }
 
-  public handleKey(key: string) {
+  public handleKey(key: string): InputOutcome {
     if (this.mode === "idle") this.start();
-    if (this.mode !== "playing") return;
+    if (this.mode !== "playing") return "ignored";
 
     if (key === "Backspace") {
       if (this.typedIndex > 0) this.typedIndex -= 1;
-      return;
+      return "rewind";
     }
 
     const normalizedKey = key === "Enter" ? "\n" : key;
-    if (normalizedKey.length !== 1) return;
+    if (normalizedKey.length !== 1) return "ignored";
 
     const expected = this.mission.code[this.typedIndex];
     if (normalizedKey === expected) {
       this.typedIndex += 1;
       this.correctKeys += 1;
-      if (this.typedIndex >= this.mission.code.length) this.mode = "complete";
-      return;
+      if (this.typedIndex >= this.mission.code.length) {
+        this.mode = "complete";
+        return "complete";
+      }
+      return "correct";
     }
 
     this.mistakes += 1;
     this.lastErrorAt = performance.now();
+    if (expected) this.mistakeMap[expected] = (this.mistakeMap[expected] ?? 0) + 1;
+    return "mistake";
   }
 
   public tick() {
@@ -137,6 +145,14 @@ export class TypingArena {
 
   public get errorActive() {
     return performance.now() - this.lastErrorAt < 360;
+  }
+
+  public get errorsByCharacter() {
+    return { ...this.mistakeMap };
+  }
+
+  public get completed() {
+    return this.typedIndex >= this.mission.code.length;
   }
 
   public get resultXp() {
