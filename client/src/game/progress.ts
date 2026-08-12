@@ -2,7 +2,7 @@ export type SessionRecord = {
   missionId: string;
   completed: boolean;
   accuracy: number;
-  wpm: number;
+  cpm: number;
   combo: number;
   earnedXp: number;
   timestamp: string;
@@ -10,7 +10,7 @@ export type SessionRecord = {
 
 export type PlayerProgress = {
   totalXp: number;
-  bestWpm: number;
+  bestCpm: number;
   bestAccuracy: number;
   longestCombo: number;
   dailyStreak: number;
@@ -24,7 +24,7 @@ const STORAGE_KEY = "pytype-arena-progress-v1";
 
 const initialProgress = (): PlayerProgress => ({
   totalXp: 0,
-  bestWpm: 0,
+  bestCpm: 0,
   bestAccuracy: 0,
   longestCombo: 0,
   dailyStreak: 0,
@@ -70,7 +70,7 @@ export class ProgressStore {
     }
 
     this.progress.totalXp += earnedXp;
-    this.progress.bestWpm = Math.max(this.progress.bestWpm, input.wpm);
+    this.progress.bestCpm = Math.max(this.progress.bestCpm, input.cpm);
     this.progress.bestAccuracy = Math.max(this.progress.bestAccuracy, input.accuracy);
     this.progress.longestCombo = Math.max(this.progress.longestCombo, input.combo);
     if (input.completed && !this.progress.completedMissionIds.includes(input.missionId)) {
@@ -86,7 +86,7 @@ export class ProgressStore {
         missionId: input.missionId,
         completed: input.completed,
         accuracy: input.accuracy,
-        wpm: input.wpm,
+        cpm: input.cpm,
         combo: input.combo,
         earnedXp,
         timestamp: now.toISOString(),
@@ -109,8 +109,14 @@ export class ProgressStore {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (!raw) return initialProgress();
-      const parsed = JSON.parse(raw) as Partial<PlayerProgress>;
-      return { ...initialProgress(), ...parsed };
+      const parsed = JSON.parse(raw) as Partial<PlayerProgress> & { bestWpm?: number; sessions?: Array<SessionRecord & { wpm?: number }> };
+      const legacySessions = (parsed.sessions ?? []) as Array<SessionRecord & { wpm?: number }>;
+      return {
+        ...initialProgress(),
+        ...parsed,
+        bestCpm: parsed.bestCpm ?? parsed.bestWpm ?? 0,
+        sessions: legacySessions.map((session) => ({ ...session, cpm: session.cpm ?? session.wpm ?? 0 })),
+      };
     } catch {
       return initialProgress();
     }

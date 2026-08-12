@@ -338,19 +338,19 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   metricGrid.addColumnDefinition(1, false);
   metricGrid.addRowDefinition(1, false);
   metricGrid.addRowDefinition(1, false);
-  const wpmNumber = text("wpm-number", "0", 30, COLORS.lime);
-  wpmNumber.fontWeight = "800";
-  wpmNumber.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-  const wpmLabel = text("wpm-label", "WPM", 10, COLORS.muted);
-  wpmLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+  const cpmNumber = text("cpm-number", "0", 30, COLORS.lime);
+  cpmNumber.fontWeight = "800";
+  cpmNumber.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+  const cpmLabel = text("cpm-label", "분당 타수", 10, COLORS.muted);
+  cpmLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
   const comboNumber = text("combo-number", "0", 30, COLORS.cyan);
   comboNumber.fontWeight = "800";
   comboNumber.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
   const comboLabel = text("combo-label", "COMBO", 10, COLORS.muted);
   comboLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-  metricGrid.addControl(wpmNumber, 0, 0);
+  metricGrid.addControl(cpmNumber, 0, 0);
   metricGrid.addControl(comboNumber, 0, 1);
-  metricGrid.addControl(wpmLabel, 1, 0);
+  metricGrid.addControl(cpmLabel, 1, 0);
   metricGrid.addControl(comboLabel, 1, 1);
   teleStack.addControl(metricGrid);
   const timerFrame = frame("timer-frame", "#0D2029");
@@ -509,7 +509,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
         missionId: arena.activeMission.id,
         completed: arena.completed,
         accuracy: arena.accuracy,
-        wpm: arena.wpm,
+        cpm: arena.cpm,
         combo: arena.combo,
         baseXp: arena.resultXp,
         mistakeMap: arena.errorsByCharacter,
@@ -534,12 +534,12 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
     overlay.isVisible = true;
     overlayKicker.text = arena.timeRemaining <= 0 && arena.progress < 1 ? "TIME OUT  /  SIGNAL SAVED" : setItems ? "WARMUP SET COMPLETE  /  XP ADDED" : "SEQUENCE COMPLETE  /  XP ADDED";
     overlayTitle.text = arena.timeRemaining <= 0 && arena.progress < 1 ? "한 번 더,\n더 정확하게." : setItems ? `${setItems.length}개 항목을\n완주했습니다.` : "흐름을\n완성했습니다.";
-    overlayDesc.text = `WPM ${arena.wpm}  ·  정확도 ${arena.accuracy}%  ·  +${latestEarnedXp} XP\nLV. ${progressStore.level}  ·  ${weakCharacters.length ? `복습 신호: ${weakCharacters.join(" · ")}` : "완벽한 흐름입니다."}`;
+    overlayDesc.text = `분당 타수 ${arena.cpm}  ·  정확도 ${arena.accuracy}%  ·  +${latestEarnedXp} XP\nLV. ${progressStore.level}  ·  ${weakCharacters.length ? `복습 신호: ${weakCharacters.join(" · ")}` : "완벽한 흐름입니다."}`;
     primaryAction.textBlock!.text = setItems ? "↻  같은 세트 다시" : "↻  같은 미션 다시 도전";
     nextMissionAction.textBlock!.text = `→  추천: ${recommendedMission.title}`;
     nextMissionAction.metadata = safeRecommendedIndex;
     nextMissionAction.isVisible = false;
-    announce(`결과: WPM ${arena.wpm}, 정확도 ${arena.accuracy}퍼센트, ${latestEarnedXp} XP를 획득했습니다.`);
+    announce(`결과: 분당 타수 ${arena.cpm}, 정확도 ${arena.accuracy}퍼센트, ${latestEarnedXp} XP를 획득했습니다.`);
   };
 
   const renderCode = () => {
@@ -555,13 +555,15 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
       cursor += line.length + 1;
     });
     const activeLine = Math.max(0, lines.findIndex((line, index) => arena.index <= lineOffsets[index] + line.length));
-    const visibleLineCount = compactCode ? 7 : 8;
-    const firstVisibleLine = Math.max(0, Math.min(activeLine - 2, lines.length - visibleLineCount));
-    const lastVisibleLine = Math.min(lines.length, firstVisibleLine + visibleLineCount);
+    const visibleLineCount = compactCode ? 5 : 7;
+    const centralRow = Math.floor(visibleLineCount / 2);
+    const firstVisibleLine = Math.max(0, activeLine - centralRow);
+    const lastVisibleLine = firstVisibleLine + visibleLineCount;
 
     for (let lineIndex = firstVisibleLine; lineIndex < lastVisibleLine; lineIndex += 1) {
-      const line = lines[lineIndex];
-      const lineStart = lineOffsets[lineIndex];
+      const line = lines[lineIndex] ?? "";
+      const lineStart = lineOffsets[lineIndex] ?? target.length;
+      const isPlaceholder = lineIndex >= lines.length;
       const row = new GUI.Rectangle(`code-row-${lineIndex}`);
       row.height = "42px";
       row.width = "100%";
@@ -569,7 +571,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
       row.background = "#00000000";
       const numberWidth = compactCode ? 26 : 38;
       const characterWidth = codeSize * 0.6;
-      const number = text(`line-${lineIndex + 1}`, String(lineIndex + 1).padStart(2, "0"), 13, "#587078");
+      const number = text(`line-${lineIndex + 1}`, isPlaceholder ? "" : String(lineIndex + 1).padStart(2, "0"), 13, "#587078");
       number.width = `${numberWidth}px`;
       number.height = "38px";
       number.resizeToFit = false;
@@ -616,7 +618,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
     progressFill.width = `${arena.progress * 100}%`;
     accuracyText.text = `${arena.accuracy}%`;
     accuracyDial.color = arena.accuracy < 90 ? COLORS.coral : COLORS.lime;
-    wpmNumber.text = String(arena.wpm);
+    cpmNumber.text = String(arena.cpm);
     comboNumber.text = String(arena.combo);
     const remainingSeconds = Math.ceil(arena.timeRemaining);
     timerValue.text = `${String(Math.floor(remainingSeconds / 60)).padStart(2, "0")}:${String(remainingSeconds % 60).padStart(2, "0")}`;

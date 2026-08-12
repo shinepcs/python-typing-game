@@ -21,9 +21,6 @@ describe("TypingArena 들여쓰기 입력", () => {
       expect(arena.handleKey(character)).toBe("correct");
     }
     expect(arena.handleKey("Enter")).toBe("correct");
-    expect(arena.target[arena.index]).toBe(" ");
-
-    expect(arena.handleKey("Tab")).toBe("correct");
     expect(arena.target[arena.index]).toBe("p");
     expect(arena.index).toBe("for step in range(2):\n    ".length);
   });
@@ -44,6 +41,22 @@ describe("TypingArena 들여쓰기 입력", () => {
     expect(arena.target[arena.index]).toBe("c");
     expect(arena.handleKey("c")).toBe("correct");
     expect(arena.index).toBe("# Save c".length);
+  });
+
+  it("블록 시작 줄에서 Enter를 누르면 다음 줄의 들여쓰기를 자동으로 적용한다", () => {
+    const nestedMission: Mission = {
+      ...mission,
+      code: "    for filename in files:\n        extension = filename.rsplit(\".\", 1)[-1]",
+    };
+    const arena = new TypingArena(nestedMission);
+
+    expect(arena.handleKey("Tab")).toBe("correct");
+    for (const character of "for filename in files:") {
+      expect(arena.handleKey(character)).toBe("correct");
+    }
+    expect(arena.handleKey("Enter")).toBe("correct");
+    expect(arena.target[arena.index]).toBe("e");
+    expect(arena.handleKey("e")).toBe("correct");
   });
 });
 

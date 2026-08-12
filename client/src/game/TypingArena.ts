@@ -93,6 +93,11 @@ export class TypingArena {
     if (normalizedKey === expected) {
       this.typedIndex += 1;
       this.correctKeys += 1;
+      if (key === "Enter") {
+        const nextIndentation = this.mission.code.slice(this.typedIndex).match(/^ +/)?.[0] ?? "";
+        this.typedIndex += nextIndentation.length;
+        this.correctKeys += nextIndentation.length;
+      }
       if (this.typedIndex >= this.mission.code.length) {
         this.mode = "complete";
         return "complete";
@@ -144,9 +149,9 @@ export class TypingArena {
     return attempted ? Math.round((this.correctKeys / attempted) * 100) : 100;
   }
 
-  public get wpm() {
+  public get cpm() {
     const minutes = this.elapsedSeconds / 60;
-    return minutes > 0 ? Math.round(this.typedIndex / 5 / minutes) : 0;
+    return minutes > 0 ? Math.round(this.typedIndex / minutes) : 0;
   }
 
   public get combo() {
