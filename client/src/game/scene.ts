@@ -567,49 +567,31 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
       row.width = "100%";
       row.thickness = 0;
       row.background = "#00000000";
-      const codeFlow = new GUI.StackPanel(`code-flow-${lineIndex}`);
-      codeFlow.isVertical = false;
-      codeFlow.height = "38px";
-      codeFlow.width = "100%";
-      codeFlow.spacing = 0;
-      codeFlow.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-      codeFlow.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
-      row.addControl(codeFlow);
+      const numberWidth = compactCode ? 26 : 38;
+      const characterWidth = codeSize * 0.6;
       const number = text(`line-${lineIndex + 1}`, String(lineIndex + 1).padStart(2, "0"), 13, "#587078");
-      number.width = compactCode ? "26px" : "38px";
+      number.width = `${numberWidth}px`;
       number.height = "38px";
       number.resizeToFit = false;
-      codeFlow.addControl(number);
+      number.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+      number.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
+      row.addControl(number);
       const typedLength = Math.max(0, Math.min(line.length, arena.index - lineStart));
       const activeInLine = arena.index >= lineStart && arena.index < lineStart + line.length;
-      const doneText = line.slice(0, typedLength);
-      const activeChar = activeInLine ? line[typedLength] : "";
-      const restText = line.slice(typedLength + (activeInLine ? 1 : 0));
-      const leadingIndent = doneText.match(/^ +/)?.[0] ?? "";
-      const completedCode = doneText.slice(leadingIndent.length);
 
-      if (leadingIndent.length > 0) {
-        const indentSegment = new GUI.Rectangle(`indent-${lineIndex}`);
-        indentSegment.width = `${Math.round(leadingIndent.length * codeSize * 0.6)}px`;
-        indentSegment.height = "38px";
-        indentSegment.thickness = 0;
-        indentSegment.background = "#00000000";
-        codeFlow.addControl(indentSegment);
-      }
-
-      if (completedCode) {
-        const typedSegment = text(`typed-${lineIndex}`, completedCode, codeSize, COLORS.lime);
-        typedSegment.height = "38px";
-        codeFlow.addControl(typedSegment);
-      }
-
-      const restSegment = text(`rest-${lineIndex}`, `${activeChar}${restText}`, codeSize, "#6E8487");
-      restSegment.height = "38px";
-      codeFlow.addControl(restSegment);
+      line.split("").forEach((character, characterIndex) => {
+        const characterCell = text(`cell-${lineIndex}-${characterIndex}`, character, codeSize, characterIndex < typedLength ? COLORS.lime : "#6E8487");
+        characterCell.width = `${characterWidth}px`;
+        characterCell.height = "38px";
+        characterCell.resizeToFit = false;
+        characterCell.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        characterCell.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        characterCell.left = `${numberWidth + characterIndex * characterWidth}px`;
+        row.addControl(characterCell);
+      });
 
       const markerIndex = activeInLine ? typedLength : arena.index === lineStart + line.length ? line.length : -1;
       if (markerIndex >= 0) {
-        const characterWidth = codeSize * 0.6;
         const marker = new GUI.Rectangle(`caret-marker-${lineIndex}`);
         marker.width = `${Math.max(6, characterWidth * 0.72)}px`;
         marker.height = "3px";
@@ -617,7 +599,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
         marker.background = arena.errorActive ? COLORS.coral : COLORS.lime;
         marker.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
         marker.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
-        marker.left = `${(compactCode ? 26 : 38) + markerIndex * characterWidth}px`;
+        marker.left = `${numberWidth + markerIndex * characterWidth}px`;
         marker.top = "-1px";
         row.addControl(marker);
       }

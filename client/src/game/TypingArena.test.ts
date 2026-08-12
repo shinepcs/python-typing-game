@@ -34,6 +34,17 @@ describe("TypingArena 들여쓰기 입력", () => {
     expect(arena.handleKey("Tab")).toBe("ignored");
     expect(arena.index).toBe(1);
   });
+
+  it("일반 공백 뒤의 다음 문자를 별도 입력으로 정확히 진행한다", () => {
+    const commentMission: Mission = { ...mission, code: "# Save completed tasks" };
+    const arena = new TypingArena(commentMission);
+    for (const character of "# Save ") {
+      expect(arena.handleKey(character)).toBe("correct");
+    }
+    expect(arena.target[arena.index]).toBe("c");
+    expect(arena.handleKey("c")).toBe("correct");
+    expect(arena.index).toBe("# Save c".length);
+  });
 });
 
 describe("연속 코드 연습 콘텐츠", () => {
