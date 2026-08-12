@@ -798,17 +798,20 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
     language.text = `${mission.title.toUpperCase()}  ·  PYTHON 3.13`;
     characterCount.text = setItems ? `${practiceSetIndex + 1}/${setItems.length} · ${arena.index}/${arena.target.length}` : `${arena.index} / ${arena.target.length}`;
     progressFill.width = `${arena.progress * 100}%`;
-    accuracyText.text = `${arena.accuracy}%`;
-    accuracyDial.color = arena.accuracy < 90 ? COLORS.coral : COLORS.lime;
-    cpmNumber.text = String(arena.cpm);
-    comboNumber.text = String(arena.combo);
+    // 오버레이가 열려 있으면 수치 갱신 중단 (오버레이 중 분당 타수 변화 방지)
+    if (!overlay.isVisible) {
+      accuracyText.text = `${arena.accuracy}%`;
+      accuracyDial.color = arena.accuracy < 90 ? COLORS.coral : COLORS.lime;
+      cpmNumber.text = String(arena.cpm);
+      comboNumber.text = String(arena.combo);
+    }
     const remainingSeconds = Math.ceil(arena.timeRemaining);
     timerValue.text = `${String(Math.floor(remainingSeconds / 60)).padStart(2, "0")}:${String(remainingSeconds % 60).padStart(2, "0")}`;
     xpLabel.text = `LV. ${String(progressStore.level).padStart(2, "0")}  /  ${progressStore.levelProgress} XP`;
     xpFill.width = `${Math.max(4, (progressStore.levelProgress / 500) * 100)}%`;
     streakCaption.text = progressStore.snapshot.dailyStreak > 0 ? `${progressStore.snapshot.dailyStreak}일 연속 학습 중` : "첫 리듬을 시작하세요.";
     const compactView = engine.getRenderWidth() < 800;
-    inputHint.text = arena.status === "paused" ? (compactView ? "일시정지 · ESC로 계속" : "일시정지됨 · ESC로 계속하기") : arena.errorActive ? (compactView ? "오타 · 현재 문자를 다시 입력" : "오타입니다. 현재 문자를 다시 입력하세요.") : arena.status === "playing" ? (compactView ? "입력 흐름 유지 중" : "지금 흐름이 좋습니다. 정확도를 지키세요.") : (compactView ? "아무 키를 누르면 시작" : "키보드를 누르면 즉시 시작됩니다.");
+    inputHint.text = overlay.isVisible ? "" : arena.status === "paused" ? (compactView ? "일시정지 · ESC로 계속" : "일시정지됨 · ESC로 계속하기") : arena.errorActive ? (compactView ? "오타 · 현재 문자를 다시 입력" : "오타입니다. 현재 문자를 다시 입력하세요.") : arena.status === "playing" ? (compactView ? "입력 흐름 유지 중" : "지금 흐름이 좋습니다. 정확도를 지키세요.") : (compactView ? "아무 키를 누르면 시작" : "키보드를 누르면 즉시 시작됩니다.");
     inputHint.color = arena.errorActive ? COLORS.coral : COLORS.muted;
     const feedbackKey = `${arena.status}-${arena.errorActive}-${arena.autoIndentActive}-${practiceSetIndex}-${arena.accuracy}-${arena.cpm}-${Math.floor(flashTimer / 60)}`;
     // ── 오타 번쩍임 타이머 갱신 ─────────────────────────────────────
@@ -842,6 +845,8 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
       return;
     }
     if (event.metaKey || event.ctrlKey || event.altKey) return;
+    // 결과 오버레이 또는 대시보드가 열려 있으면 게임 입력 차단
+    if (overlay.isVisible || dashboardOverlay.isVisible) return;
     if (event.key === "Escape") {
       arena.togglePause();
       announce(arena.status === "paused" ? "미션을 일시정지했습니다." : "미션을 다시 시작했습니다.");
