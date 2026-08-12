@@ -21,8 +21,8 @@ const COLORS = {
   cyan: "#69D6D5",
   coral: "#FF7A6B",
   ink: "#F0F5E9",
-  muted: "#8DA5A7",
-  frame: "#24414A",
+  muted: "#BDD0D1",
+  frame: "#42646D",
 };
 
 export type GameHandle = { scene: Scene; dispose: () => void };
@@ -31,7 +31,7 @@ function text(name: string, value: string, size: number, color = COLORS.ink) {
   const control = new GUI.TextBlock(name, value);
   control.color = color;
   control.fontFamily = "IBM Plex Mono, monospace";
-  control.fontSize = size;
+  control.fontSize = Math.max(13, size);
   control.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
   control.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
   control.resizeToFit = true;
@@ -53,13 +53,13 @@ function frame(name: string, background = COLORS.surface) {
 
 function button(name: string, label: string, primary = false) {
   const control = GUI.Button.CreateSimpleButton(name, label);
-  control.height = "40px";
+  control.height = "44px";
   control.color = primary ? COLORS.base : COLORS.ink;
   control.background = primary ? COLORS.lime : "#0E202A";
   control.thickness = 1;
   control.cornerRadius = 0;
   control.fontFamily = "IBM Plex Mono, monospace";
-  control.fontSize = 13;
+  control.fontSize = 15;
   control.paddingLeft = "10px";
   control.paddingRight = "10px";
   control.onPointerEnterObservable.add(() => {
@@ -135,7 +135,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   brand.fontFamily = "Space Grotesk, sans-serif";
   brand.fontWeight = "800";
   brand.height = "27px";
-  const tag = text("brand-tag", "PYTHON / TYPING PROTOCOL", 10, COLORS.cyan);
+  const tag = text("brand-tag", "PYTHON / TYPING PROTOCOL", 13, COLORS.cyan);
   tag.height = "16px";
   brandStack.addControl(brand);
   brandStack.addControl(tag);
@@ -146,7 +146,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   xpStack.width = "230px";
   xpStack.height = "100%";
   xpStack.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
-  const xpLabel = text("xp-label", "LV. 03  /  680 XP", 10, COLORS.muted);
+  const xpLabel = text("xp-label", "LV. 03  /  680 XP", 13, COLORS.muted);
   xpLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
   xpLabel.height = "22px";
   const xpTrack = new GUI.Rectangle("xp-track");
@@ -186,14 +186,14 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   const missionRail = frame("mission-rail", "#081720D9");
   const missionStack = new GUI.StackPanel("mission-stack");
   missionStack.spacing = 10;
-  const missionKicker = text("mission-kicker", "MISSION QUEUE", 10, COLORS.cyan);
+  const missionKicker = text("mission-kicker", "MISSION QUEUE", 13, COLORS.cyan);
   missionKicker.height = "24px";
   const missionTitle = text("mission-title", "연속 코드 연습", 20, COLORS.ink);
   missionTitle.fontFamily = "Space Grotesk, Noto Sans KR, sans-serif";
   missionTitle.fontWeight = "700";
   missionTitle.height = "34px";
-  const missionBody = text("mission-body", "5·20자 워밍업 뒤\n실행 가능한 코드로 이어갑니다.", 12, COLORS.muted);
-  missionBody.height = "50px";
+  const missionBody = text("mission-body", "5·20자 워밍업 후\n함수·프로그램 코드로\n연속 연습합니다.", 14, COLORS.muted);
+  missionBody.height = "70px";
   missionStack.addControl(missionKicker);
   missionStack.addControl(missionTitle);
   missionStack.addControl(missionBody);
@@ -212,7 +212,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   deckButton.height = "38px";
   deckButton.width = "100%";
   missionStack.addControl(deckButton);
-  const practicalKicker = text("practical-kicker", "PRACTICAL CODE", 10, COLORS.cyan);
+  const practicalKicker = text("practical-kicker", "PRACTICAL CODE", 13, COLORS.cyan);
   practicalKicker.height = "24px";
   missionStack.addControl(practicalKicker);
   const functionEntry = button("function-entry", "ƒ  함수 코드 연습", false);
@@ -237,7 +237,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   preview.alpha = 0.68;
   preview.stretch = GUI.Image.STRETCH_UNIFORM;
   missionStack.addControl(preview);
-  const previewCaption = text("preview-caption", "ARENA SCAN  ·  SPRINT MODE", 9, COLORS.muted);
+  const previewCaption = text("preview-caption", "ARENA SCAN  ·  SPRINT MODE", 12, COLORS.muted);
   previewCaption.height = "19px";
   missionStack.addControl(previewCaption);
   missionRail.addControl(missionStack);
@@ -254,8 +254,8 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   terminalHeader.height = "30px";
   terminalHeader.addColumnDefinition(1, false);
   terminalHeader.addColumnDefinition(130, true);
-  const prompt = text("terminal-prompt", "> KEEP THE FLOW", 11, COLORS.lime);
-  const language = text("language", "PYTHON 3.13", 10, COLORS.muted);
+  const prompt = text("terminal-prompt", "> KEEP THE FLOW", 14, COLORS.lime);
+  const language = text("language", "PYTHON 3.13", 13, COLORS.muted);
   language.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
   terminalHeader.addControl(prompt, 0, 0);
   terminalHeader.addControl(language, 0, 1);
@@ -266,19 +266,19 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   codeRule.background = COLORS.frame;
   codeRule.thickness = 0;
   terminalStack.addControl(codeRule);
-  const conceptText = text("concept", "for · range", 13, COLORS.cyan);
+  const conceptText = text("concept", "for · range", 16, COLORS.cyan);
   conceptText.height = "28px";
   terminalStack.addControl(conceptText);
   const codeContainer = new GUI.StackPanel("code-container");
-  codeContainer.height = "328px";
+  codeContainer.height = "360px";
   codeContainer.paddingTop = "14px";
   terminalStack.addControl(codeContainer);
   const statusStrip = new GUI.Grid("status-strip");
   statusStrip.height = "44px";
   statusStrip.addColumnDefinition(1, false);
   statusStrip.addColumnDefinition(112, true);
-  const inputHint = text("input-hint", "키보드를 누르면 즉시 시작됩니다.", 11, COLORS.muted);
-  const characterCount = text("character-count", "0 / 0", 11, COLORS.cyan);
+  const inputHint = text("input-hint", "키보드를 누르면 즉시 시작됩니다.", 14, COLORS.muted);
+  const characterCount = text("character-count", "0 / 0", 14, COLORS.cyan);
   characterCount.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
   statusStrip.addControl(inputHint, 0, 0);
   statusStrip.addControl(characterCount, 0, 1);
@@ -313,7 +313,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   const telemetry = frame("telemetry", "#081720D9");
   const teleStack = new GUI.StackPanel("telemetry-stack");
   teleStack.spacing = 10;
-  const teleKicker = text("tele-kicker", "PERFORMANCE SIGNAL", 10, COLORS.cyan);
+  const teleKicker = text("tele-kicker", "PERFORMANCE SIGNAL", 13, COLORS.cyan);
   teleKicker.height = "24px";
   teleStack.addControl(teleKicker);
   const accuracyDial = new GUI.Ellipse("accuracy-dial");
@@ -328,7 +328,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   accuracyText.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
   accuracyDial.addControl(accuracyText);
   teleStack.addControl(accuracyDial);
-  const accuracyCaption = text("accuracy-caption", "정확도", 11, COLORS.muted);
+  const accuracyCaption = text("accuracy-caption", "정확도", 14, COLORS.muted);
   accuracyCaption.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
   accuracyCaption.height = "22px";
   teleStack.addControl(accuracyCaption);
@@ -341,12 +341,12 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   const cpmNumber = text("cpm-number", "0", 30, COLORS.lime);
   cpmNumber.fontWeight = "800";
   cpmNumber.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-  const cpmLabel = text("cpm-label", "분당 타수", 10, COLORS.muted);
+  const cpmLabel = text("cpm-label", "분당 타수", 14, COLORS.muted);
   cpmLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
   const comboNumber = text("combo-number", "0", 30, COLORS.cyan);
   comboNumber.fontWeight = "800";
   comboNumber.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-  const comboLabel = text("combo-label", "COMBO", 10, COLORS.muted);
+  const comboLabel = text("combo-label", "COMBO", 14, COLORS.muted);
   comboLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
   metricGrid.addControl(cpmNumber, 0, 0);
   metricGrid.addControl(comboNumber, 0, 1);
@@ -358,7 +358,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   timerFrame.paddingTop = "6px";
   timerFrame.paddingBottom = "6px";
   const timerStack = new GUI.StackPanel("timer-stack");
-  const timerLabel = text("timer-label", "TIME REMAINING", 9, COLORS.muted);
+  const timerLabel = text("timer-label", "TIME REMAINING", 12, COLORS.muted);
   timerLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
   timerLabel.height = "16px";
   const timerValue = text("timer", "00:35", 25, COLORS.ink);
@@ -383,10 +383,14 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   streakGlyph.textVerticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
   streakNode.addControl(streakGlyph);
   teleStack.addControl(streakNode);
-  const streakCaption = text("streak-caption", "정확한 흐름을 끊지 마세요.", 11, COLORS.muted);
+  const streakCaption = text("streak-caption", "정확한 흐름을 끊지 마세요.", 14, COLORS.muted);
   streakCaption.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
   streakCaption.height = "22px";
   teleStack.addControl(streakCaption);
+  const dashboardToggle = button("dashboard-toggle", "▥  성장 대시보드", false);
+  dashboardToggle.height = "44px";
+  dashboardToggle.width = "100%";
+  teleStack.addControl(dashboardToggle);
   telemetry.addControl(teleStack);
   arenaGrid.addControl(telemetry, 0, 2);
 
@@ -440,6 +444,84 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   overlay.addControl(overlayCard);
   ui.addControl(overlay);
 
+  const dashboardOverlay = new GUI.Rectangle("dashboard-overlay");
+  dashboardOverlay.width = 1;
+  dashboardOverlay.height = 1;
+  dashboardOverlay.background = "#051018E8";
+  dashboardOverlay.thickness = 0;
+  dashboardOverlay.isPointerBlocker = true;
+  dashboardOverlay.isVisible = false;
+  const dashboardCard = frame("dashboard-card", "#091923FA");
+  dashboardCard.width = "780px";
+  dashboardCard.height = "510px";
+  dashboardCard.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+  dashboardCard.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+  const dashboardStack = new GUI.StackPanel("dashboard-stack");
+  dashboardStack.spacing = 14;
+  const dashboardHeader = new GUI.Grid("dashboard-header");
+  dashboardHeader.height = "42px";
+  dashboardHeader.addColumnDefinition(1, false);
+  dashboardHeader.addColumnDefinition(112, true);
+  const dashboardTitle = text("dashboard-title", "성장 대시보드", 24, COLORS.ink);
+  dashboardTitle.fontFamily = "Space Grotesk, Noto Sans KR, sans-serif";
+  dashboardTitle.fontWeight = "800";
+  const dashboardClose = button("dashboard-close", "닫기", false);
+  dashboardClose.width = "96px";
+  dashboardClose.height = "40px";
+  dashboardHeader.addControl(dashboardTitle, 0, 0);
+  dashboardHeader.addControl(dashboardClose, 0, 1);
+  const dashboardSubhead = text("dashboard-subhead", "최근 완료 세션의 실제 분당 타수 추이", 14, COLORS.cyan);
+  dashboardSubhead.height = "28px";
+  const dashboardMetrics = new GUI.Grid("dashboard-metrics");
+  dashboardMetrics.height = "88px";
+  dashboardMetrics.addColumnDefinition(1, false);
+  dashboardMetrics.addColumnDefinition(1, false);
+  dashboardMetrics.addColumnDefinition(1, false);
+  const bestCpmMetric = text("dashboard-best", "0", 28, COLORS.lime);
+  bestCpmMetric.fontWeight = "800";
+  bestCpmMetric.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+  const averageCpmMetric = text("dashboard-average", "0", 28, COLORS.cyan);
+  averageCpmMetric.fontWeight = "800";
+  averageCpmMetric.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+  const countMetric = text("dashboard-count", "0", 28, COLORS.ink);
+  countMetric.fontWeight = "800";
+  countMetric.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+  const bestCpmLabel = text("dashboard-best-label", "최고 분당 타수", 14, COLORS.muted);
+  bestCpmLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+  const averageCpmLabel = text("dashboard-average-label", "최근 평균", 14, COLORS.muted);
+  averageCpmLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+  const countLabel = text("dashboard-count-label", "완료 세션", 14, COLORS.muted);
+  countLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+  dashboardMetrics.addControl(bestCpmMetric, 0, 0);
+  dashboardMetrics.addControl(averageCpmMetric, 0, 1);
+  dashboardMetrics.addControl(countMetric, 0, 2);
+  dashboardMetrics.addControl(bestCpmLabel, 1, 0);
+  dashboardMetrics.addControl(averageCpmLabel, 1, 1);
+  dashboardMetrics.addControl(countLabel, 1, 2);
+  const chartFrame = new GUI.Rectangle("cpm-chart-frame");
+  chartFrame.width = "100%";
+  chartFrame.height = "250px";
+  chartFrame.background = "#07151E";
+  chartFrame.color = COLORS.frame;
+  chartFrame.thickness = 1;
+  chartFrame.paddingLeft = "16px";
+  chartFrame.paddingRight = "16px";
+  chartFrame.paddingTop = "16px";
+  chartFrame.paddingBottom = "14px";
+  const chartBars = new GUI.Grid("cpm-chart-bars");
+  chartFrame.addControl(chartBars);
+  const chartFooter = text("dashboard-chart-footer", "최근 12개 완료 세션 · 분당 타수", 13, COLORS.muted);
+  chartFooter.height = "24px";
+  chartFooter.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+  dashboardStack.addControl(dashboardHeader);
+  dashboardStack.addControl(dashboardSubhead);
+  dashboardStack.addControl(dashboardMetrics);
+  dashboardStack.addControl(chartFrame);
+  dashboardStack.addControl(chartFooter);
+  dashboardCard.addControl(dashboardStack);
+  dashboardOverlay.addControl(dashboardCard);
+  ui.addControl(dashboardOverlay);
+
   const arena = new TypingArena(MISSIONS[0]);
   const progressStore = new ProgressStore();
   const soundEngine = new SoundEngine();
@@ -470,6 +552,46 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   const announce = (message: string) => {
     const liveRegion = document.getElementById("arena-live");
     if (liveRegion) liveRegion.textContent = message;
+  };
+
+  const renderDashboard = () => {
+    const sessions = [...progressStore.snapshot.sessions].reverse().slice(-12);
+    const averageCpm = sessions.length ? Math.round(sessions.reduce((sum, session) => sum + session.cpm, 0) / sessions.length) : 0;
+    bestCpmMetric.text = String(progressStore.snapshot.bestCpm);
+    averageCpmMetric.text = String(averageCpm);
+    countMetric.text = `${sessions.length}회`;
+    chartBars.clearControls();
+    if (sessions.length === 0) {
+      const empty = text("chart-empty", "첫 연습을 완료하면 실제 분당 타수 추이가 여기에 쌓입니다.", 16, COLORS.muted);
+      empty.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+      chartBars.addControl(empty);
+      return;
+    }
+    const maxCpm = Math.max(1, ...sessions.map((session) => session.cpm));
+    sessions.forEach((session, index) => {
+      chartBars.addColumnDefinition(1, false);
+      const barCell = new GUI.Rectangle(`chart-cell-${index}`);
+      barCell.thickness = 0;
+      const value = text(`chart-value-${index}`, String(session.cpm), 14, index === sessions.length - 1 ? COLORS.lime : COLORS.ink);
+      value.height = "24px";
+      value.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+      value.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
+      const bar = new GUI.Rectangle(`chart-bar-${index}`);
+      bar.width = "54%";
+      bar.height = `${Math.max(10, (session.cpm / maxCpm) * 78)}%`;
+      bar.background = index === sessions.length - 1 ? COLORS.lime : COLORS.cyan;
+      bar.thickness = 0;
+      bar.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+      bar.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+      const sessionLabel = text(`chart-session-${index}`, `${index + 1}`, 13, COLORS.muted);
+      sessionLabel.height = "22px";
+      sessionLabel.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+      sessionLabel.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+      barCell.addControl(value);
+      barCell.addControl(bar);
+      barCell.addControl(sessionLabel);
+      chartBars.addControl(barCell, 0, index);
+    });
   };
 
   const refreshMissionDeck = () => {
@@ -557,7 +679,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
     const target = arena.target;
     const lines = target.split("\n");
     const compactCode = engine.getRenderWidth() < 800;
-    const codeSize = compactCode ? 14 : 20;
+    const codeSize = compactCode ? 18 : 24;
     const lineOffsets: number[] = [];
     let cursor = 0;
     lines.forEach((line) => {
@@ -565,7 +687,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
       cursor += line.length + 1;
     });
     const activeLine = Math.max(0, lines.findIndex((line, index) => arena.index <= lineOffsets[index] + line.length));
-    const visibleLineCount = compactCode ? 5 : 7;
+    const visibleLineCount = compactCode ? 4 : 6;
     const centralRow = Math.floor(visibleLineCount / 2);
     const firstVisibleLine = Math.max(0, activeLine - centralRow);
     const lastVisibleLine = firstVisibleLine + visibleLineCount;
@@ -575,18 +697,21 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
       const lineStart = lineOffsets[lineIndex] ?? target.length;
       const isPlaceholder = lineIndex >= lines.length;
       const row = new GUI.Rectangle(`code-row-${lineIndex}`);
-      row.height = "42px";
+      row.height = "52px";
       row.width = "100%";
       row.thickness = 0;
       row.background = "#00000000";
-      const numberWidth = compactCode ? 26 : 38;
+      const feedbackColumnWidth = compactCode ? 0 : 196;
+      const lineNumberWidth = compactCode ? 34 : 46;
+      const numberWidth = feedbackColumnWidth + lineNumberWidth;
       const characterWidth = codeSize * 0.6;
-      const number = text(`line-${lineIndex + 1}`, isPlaceholder ? "" : String(lineIndex + 1).padStart(2, "0"), 13, "#587078");
-      number.width = `${numberWidth}px`;
-      number.height = "38px";
+      const number = text(`line-${lineIndex + 1}`, isPlaceholder ? "" : String(lineIndex + 1).padStart(2, "0"), 15, "#7E9A9E");
+      number.width = `${lineNumberWidth}px`;
+      number.height = "46px";
       number.resizeToFit = false;
       number.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
       number.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
+      number.left = `${feedbackColumnWidth}px`;
       row.addControl(number);
       const typedLength = Math.max(0, Math.min(line.length, arena.index - lineStart));
       const activeInLine = arena.index >= lineStart && arena.index < lineStart + line.length;
@@ -594,7 +719,7 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
       line.split("").forEach((character, characterIndex) => {
         const characterCell = text(`cell-${lineIndex}-${characterIndex}`, character, codeSize, characterIndex < typedLength ? COLORS.lime : "#6E8487");
         characterCell.width = `${characterWidth}px`;
-        characterCell.height = "38px";
+        characterCell.height = "46px";
         characterCell.resizeToFit = false;
         characterCell.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
         characterCell.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
@@ -618,20 +743,21 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
       if (lineIndex === activeLine) {
         const feedback = nearbyFeedback();
         const feedbackBubble = new GUI.Rectangle(`feedback-bubble-${lineIndex}`);
-        feedbackBubble.width = compactCode ? "172px" : "238px";
-        feedbackBubble.height = "27px";
+        feedbackBubble.width = compactCode ? "172px" : "184px";
+        feedbackBubble.height = "34px";
         feedbackBubble.cornerRadius = 5;
         feedbackBubble.thickness = 1;
         feedbackBubble.color = feedback.color;
         feedbackBubble.background = feedback.background;
-        feedbackBubble.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        feedbackBubble.horizontalAlignment = compactCode ? GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT : GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
         feedbackBubble.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
-        feedbackBubble.top = "4px";
+        feedbackBubble.top = "6px";
+        feedbackBubble.left = compactCode ? "0px" : "0px";
         feedbackBubble.zIndex = 5;
-        const feedbackText = text(`feedback-text-${lineIndex}`, feedback.text, compactCode ? 10 : 11, feedback.color);
-        feedbackText.height = "27px";
-        feedbackText.paddingLeft = "10px";
-        feedbackText.paddingRight = "10px";
+        const feedbackText = text(`feedback-text-${lineIndex}`, feedback.text, compactCode ? 13 : 14, feedback.color);
+        feedbackText.height = "34px";
+        feedbackText.paddingLeft = "12px";
+        feedbackText.paddingRight = "12px";
         feedbackBubble.addControl(feedbackText);
         row.addControl(feedbackBubble);
       }
@@ -655,7 +781,8 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
     xpLabel.text = `LV. ${String(progressStore.level).padStart(2, "0")}  /  ${progressStore.levelProgress} XP`;
     xpFill.width = `${Math.max(4, (progressStore.levelProgress / 500) * 100)}%`;
     streakCaption.text = progressStore.snapshot.dailyStreak > 0 ? `${progressStore.snapshot.dailyStreak}일 연속 학습 중` : "첫 리듬을 시작하세요.";
-    inputHint.text = arena.status === "paused" ? "일시정지됨 · ESC로 계속하기" : arena.errorActive ? "오타입니다. 현재 문자를 다시 입력하세요." : arena.status === "playing" ? "지금 흐름이 좋습니다. 정확도를 지키세요." : "키보드를 누르면 즉시 시작됩니다.";
+    const compactView = engine.getRenderWidth() < 800;
+    inputHint.text = arena.status === "paused" ? (compactView ? "일시정지 · ESC로 계속" : "일시정지됨 · ESC로 계속하기") : arena.errorActive ? (compactView ? "오타 · 현재 문자를 다시 입력" : "오타입니다. 현재 문자를 다시 입력하세요.") : arena.status === "playing" ? (compactView ? "입력 흐름 유지 중" : "지금 흐름이 좋습니다. 정확도를 지키세요.") : (compactView ? "아무 키를 누르면 시작" : "키보드를 누르면 즉시 시작됩니다.");
     inputHint.color = arena.errorActive ? COLORS.coral : COLORS.muted;
     const feedbackKey = `${arena.status}-${arena.errorActive}-${arena.autoIndentActive}-${practiceSetIndex}-${arena.accuracy}-${arena.cpm}`;
     if (arena.index !== lastIndex || mission.id !== lastMissionId || feedbackKey !== lastFeedbackKey) {
@@ -717,6 +844,13 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
     focusMode = !focusMode;
     focusToggle.textBlock!.text = focusMode ? "EXIT FOCUS" : "FOCUS";
   });
+  dashboardToggle.onPointerUpObservable.add(() => {
+    renderDashboard();
+    dashboardOverlay.isVisible = true;
+  });
+  dashboardClose.onPointerUpObservable.add(() => {
+    dashboardOverlay.isVisible = false;
+  });
   missionButtons.forEach((missionButton, index) => missionButton.onPointerUpObservable.add(() => selectMission(visibleMissionIndexes[index])));
   deckButton.onPointerUpObservable.add(() => {
     missionDeckPage = (missionDeckPage + 1) % Math.ceil(MISSIONS.length / 3);
@@ -767,10 +901,14 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
       headerGrid.setColumnDefinition(1, 1, false);
       headerGrid.setColumnDefinition(2, compact ? 0 : 92, true);
       headerGrid.setColumnDefinition(3, compact ? 0 : 104, true);
+      statusStrip.setColumnDefinition(1, compact ? 72 : 112, true);
       xpStack.width = compact ? "172px" : "230px";
       terminal.paddingLeft = condensed ? "12px" : "22px";
       terminal.paddingRight = condensed ? "12px" : "22px";
-      codeContainer.height = compact ? "280px" : "328px";
+      conceptText.fontSize = compact ? 13 : 16;
+      inputHint.fontSize = compact ? 13 : 14;
+      characterCount.fontSize = compact ? 13 : 14;
+      codeContainer.height = compact ? "280px" : "360px";
       lastIndex = -1;
     }
   });
