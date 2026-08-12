@@ -273,6 +273,25 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
   codeContainer.height = "360px";
   codeContainer.paddingTop = "14px";
   terminalStack.addControl(codeContainer);
+  // ── 오타 토스트 배너 (코드 영역 바로 아래, 첫 줄 오타 시 표시) ──
+  const toastBanner = new GUI.Rectangle("toast-banner");
+  toastBanner.width = "100%";
+  toastBanner.height = "32px";
+  toastBanner.cornerRadius = 5;
+  toastBanner.thickness = 1;
+  toastBanner.color = COLORS.coral;
+  toastBanner.background = "#3A141B";
+  toastBanner.isVisible = false;
+  toastBanner.zIndex = 10;
+  const toastBannerText = text("toast-banner-text", "", 13, COLORS.coral);
+  toastBannerText.resizeToFit = false;
+  toastBannerText.width = "100%";
+  toastBannerText.height = "32px";
+  toastBannerText.paddingLeft = "14px";
+  toastBannerText.paddingRight = "14px";
+  toastBannerText.textWrapping = GUI.TextWrapping.Clip;
+  toastBanner.addControl(toastBannerText);
+  terminalStack.addControl(toastBanner);
   const statusStrip = new GUI.Grid("status-strip");
   statusStrip.height = "44px";
   statusStrip.addColumnDefinition(1, false);
@@ -795,31 +814,6 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
         toastBubble.addControl(toastText);
         row.addControl(toastBubble);
       }
-      // ── 오타 토스트 버블 (첫 줄 오타 시 현재 줄 아래) ────────────
-      if (isActiveLine && activeLine === 0 && toastTimer > 0 && !compactCode) {
-        const toastBubble2 = new GUI.Rectangle(`toast-bubble-active-${lineIndex}`);
-        toastBubble2.width = "240px";
-        toastBubble2.height = "32px";
-        toastBubble2.cornerRadius = 5;
-        toastBubble2.thickness = 1;
-        toastBubble2.color = COLORS.coral;
-        toastBubble2.background = "#3A141B";
-        toastBubble2.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-        toastBubble2.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
-        toastBubble2.top = "2px";
-        toastBubble2.left = `${numberWidth}px`;
-        toastBubble2.zIndex = 10;
-        toastBubble2.alpha = Math.min(1, toastTimer / 400);
-        const toastText2 = text(`toast-text-active-${lineIndex}`, toastMessage, 13, COLORS.coral);
-        toastText2.resizeToFit = false;
-        toastText2.width = "232px";
-        toastText2.height = "32px";
-        toastText2.paddingLeft = "10px";
-        toastText2.paddingRight = "10px";
-        toastText2.textWrapping = GUI.TextWrapping.Clip;
-        toastBubble2.addControl(toastText2);
-        row.addControl(toastBubble2);
-      }
       codeContainer.addControl(row);
     }
   };
@@ -853,6 +847,21 @@ export async function createGameScene(engine: Engine, canvas: HTMLCanvasElement)
       toastTimer = Math.max(0, toastTimer - dt);
     }
     lastErrorActive = arena.errorActive;
+    // 첫 줄(activeLine === 0)에서 오타 발생 시 코드 아래 배너 표시
+    {
+      const target = arena.target;
+      const lines = target.split("\n");
+      const lineOffsets: number[] = [];
+      let cur = 0;
+      lines.forEach((l) => { lineOffsets.push(cur); cur += l.length + 1; });
+      const activeLine = Math.max(0, lines.findIndex((l, i) => arena.index <= lineOffsets[i] + l.length));
+      const showBanner = activeLine === 0 && toastTimer > 0;
+      toastBanner.isVisible = showBanner;
+      if (showBanner) {
+        toastBannerText.text = toastMessage;
+        toastBanner.alpha = Math.min(1, toastTimer / 400);
+      }
+    }
     if (arena.index !== lastIndex || mission.id !== lastMissionId || feedbackKey !== lastFeedbackKey) {
       renderCode();
       lastIndex = arena.index;
